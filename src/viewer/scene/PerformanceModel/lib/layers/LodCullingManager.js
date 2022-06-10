@@ -14,6 +14,8 @@ let _attachedFPSTracker = false;
  */
 const _fpsTrackingManagers = [];
 
+let isCameraMoving = false;
+
 /**
  * 
  * @param {Scene} scene 
@@ -29,7 +31,24 @@ function attachFPSTracker (scene, cullingManager) {
 
         let currentFPS = -1;
 
+        // Enagle LodCulling only on camera move
+        let timeoutDuration = 800; // Milliseconds
+        let timer = timeoutDuration;
+
+        scene.camera.on("matrix", () => {
+          timer = timeoutDuration;
+          isCameraMoving = true;
+        });
+
+
         scene.on ("tick", function (tickEvent) {
+            // Only apply Lod Culling if camera is moving
+            // Triggering the effect during coloring/selection/etc doesn't feel good.
+            timer -= tickEvent.deltaTime;
+            if (timer <= 0) {
+                isCameraMoving = false;
+            }
+
             let cullApplied = false;
 
             if (currentFPS != -1)
@@ -128,13 +147,6 @@ function attachFPSTracker (scene, cullingManager) {
          * @type {number}
          */
         this.lodLevelIndex = 0;
-
-        /**
-         * Number of consecutive frames in current `LOD` level where FPS was above `targetFps`
-         * 
-         * @type {number}
-         */
-        this.consecutiveFramesWithTargetFps = 0;
 
         /**
          * Number of consecutive frames in current `LOD` level where FPS was below `targetFps`
@@ -294,21 +306,18 @@ class LodCullingManager {
 
         let retVal = false;
 
-        if (currentFPS < lodState.targetFps)
-        {
-            if (++lodState.consecutiveFramesWithoutTargetFps > 8)
-            {
+        if (isCameraMoving && currentFPS < lodState.targetFps) {
+            const targetCurrentRatio = Math.round((lodState.targetFps / currentFPS) * 2);
+            lodState.consecutiveFramesWithoutTargetFps += targetCurrentRatio;
+            if (lodState.consecutiveFramesWithoutTargetFps > 8) {
                 lodState.consecutiveFramesWithoutTargetFps = 0;
                 retVal = this._increaseLODLevelIndex();
             }
         }
-        else if (currentFPS > (lodState.targetFps + 4))
-        {
-            if (++lodState.consecutiveFramesWithTargetFps > 20)
-            {
-                lodState.consecutiveFramesWithTargetFps = 0;
-                retVal = this._decreaseLODLevelIndex();
-            }
+        else if (!isCameraMoving) {
+            while(this._decreaseLODLevelIndex() === true) {
+                retVal = true;
+            };
         }
 
         if (model.commitDeferredFlagsInAllLayers) {

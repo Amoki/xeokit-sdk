@@ -953,6 +953,7 @@ class PerformanceModel extends Component {
         super(owner, cfg);
 
         this._targetLodFps = cfg.targetLodFps;
+        this._lodLevels = cfg.lodLevels || [ 2000, 1000, 500, 250];
 
         if (cfg.enableViewFrustumCulling) {
             /**
@@ -2472,7 +2473,7 @@ class PerformanceModel extends Component {
         if (this._targetLodFps) {
             this.lodCullingManager = new LodCullingManager (
                 this,
-                [ 2000, 600, 150, 80, 20 ],
+                this._lodLevels,
                 this._targetLodFps
             );
         }
