@@ -148,12 +148,6 @@ function attachFPSTracker (scene, cullingManager) {
          */
         this.lodLevelIndex = 0;
 
-        /**
-         * Number of consecutive frames in current `LOD` level where FPS was below `targetFps`
-         * 
-         * @type {number}
-         */
-        this.consecutiveFramesWithoutTargetFps = 0;
     }
 
     initializeLodState (model) {
@@ -307,12 +301,7 @@ class LodCullingManager {
         let retVal = false;
 
         if (isCameraMoving && currentFPS < lodState.targetFps) {
-            const targetCurrentRatio = Math.round((lodState.targetFps / currentFPS) * 2);
-            lodState.consecutiveFramesWithoutTargetFps += targetCurrentRatio;
-            if (lodState.consecutiveFramesWithoutTargetFps > 8) {
-                lodState.consecutiveFramesWithoutTargetFps = 0;
-                retVal = this._increaseLODLevelIndex();
-            }
+            retVal = this._increaseLODLevelIndex();
         }
         else if (!isCameraMoving) {
             while(this._decreaseLODLevelIndex() === true) {
