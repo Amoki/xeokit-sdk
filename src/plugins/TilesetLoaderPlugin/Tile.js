@@ -1,4 +1,5 @@
 import { math } from "../../viewer/scene/math/math.js";
+import { Mesh, buildBoxLinesGeometry, ReadableGeometry, PhongMaterial } from "../../viewer/scene/index.js";
 
 export default class Tile {
   /**
@@ -50,18 +51,30 @@ export default class Tile {
 
     const [x, y, z, a, b, c, d, e, f, g, h, i] = tileData.boundingVolume.box;
 
-    this.center = Object.freeze([x, y, z]);
+    const center = [x, z, -y];
+
+    if (tileset.rootTransform) {
+      center[0] += tileset.rootTransform[12];
+      center[1] += tileset.rootTransform[14];
+      center[2] += tileset.rootTransform[13];
+    }
+
+    this.center = Object.freeze(center);
 
     const halfXVector = [a, b, c];
-    const halfYVector = [d, e, f];
+    const halfYVector = [-d, -e, -f];
     const halfZVector = [g, h, i];
 
+    this.xSize = math.lenVec3(halfXVector);
+    this.ySize = math.lenVec3(halfZVector);
+    this.zSize = math.lenVec3(halfYVector);
+
     this.volume =
-      math.lenVec3(halfXVector) *
+      this.xSize *
       2 *
-      math.lenVec3(halfYVector) *
+      this.ySize *
       2 *
-      math.lenVec3(halfZVector) *
+      this.zSize *
       2;
 
     this.children = tileData.children.map(
@@ -143,6 +156,31 @@ export default class Tile {
     return this.fetching;
   }
 
+  showBoundingBox() {
+    const { viewer } = this.tileset.plugin;
+
+    const {
+      xSize,
+      ySize,
+      zSize,
+      center,
+    } = this;
+
+    const colorFactor = 1 / this.depth;
+
+    this.boxLines = new Mesh(viewer.scene, {
+      geometry: new ReadableGeometry(viewer.scene, buildBoxLinesGeometry({
+         center,
+         xSize,
+         ySize,
+         zSize
+      })),
+      material: new PhongMaterial(viewer.scene, {
+         emissive: [1 - colorFactor ,colorFactor, (1 - colorFactor) / 2]
+      })
+    });
+  }
+
   async load() {
     if (this.loading) {
       return this.loadProcess;
@@ -171,6 +209,10 @@ export default class Tile {
     if (!this.visible) {
       this.loading = false;
       return null;
+    }
+
+    if (this.tileset.plugin.cfg.dev) {
+      this.showBoundingBox();
     }
 
     try {
@@ -227,6 +269,11 @@ export default class Tile {
   }
 
   unload() {
+    if (this.boxLines) {
+      this.boxLines.destroy();
+      this.boxLines = null;
+    }
+
     if (this.model) {
       this.model.destroy();
       this.model = null;
