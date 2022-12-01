@@ -91,5 +91,7 @@ export default class Tileset {
     this.loadedTiles.forEach(tile => tile.unload());
 
     this.destroyed = true;
+
+    this.plugin.tilesets.delete(this);
   }
 }
