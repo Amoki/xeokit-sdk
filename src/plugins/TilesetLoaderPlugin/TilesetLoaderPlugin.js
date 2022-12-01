@@ -70,7 +70,7 @@ class TilesetLoaderPlugin extends Plugin {
    * @param { Object } cfg Plugin configuration.
    * @param { (tile: TSL.Tile) => number } [cfg.computeViewDistance] A function used to compute tile view distance.
    * @param { (tile: TSL.Tile) => number } [cfg.computePriority] A function used to compute tile priority.
-   * @param { number } [cfg.viewDistance=100] The distance from the camera used to compute the tiles visibility.
+   * @param { number } [cfg.viewDistance=300] The distance from the camera used to compute the tiles visibility.
    * @param { number } [cfg.distanceFactorToFreeData=3] The distance from the camera used to free tiles data.
    * @param { boolean } [cfg.dev=false] If `true`, Tiles bounding box are shown.
    * 
@@ -82,7 +82,7 @@ class TilesetLoaderPlugin extends Plugin {
     const {
       computeViewDistance = defaultComputeViewDistance,
       computePriority = defaultComputePriority,
-      viewDistance = 100,
+      viewDistance = 300,
       distanceFactorToFreeData = 3,
       dev = false,
     } = cfg;
