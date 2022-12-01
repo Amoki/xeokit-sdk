@@ -60,6 +60,7 @@ declare namespace TSL {
     priority: number;
     center: Point;
     volume: number;
+    diagonal: number;
     children: Tile[];
     visible: boolean;
     readonly loaded: boolean;

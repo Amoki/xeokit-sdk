@@ -12,7 +12,7 @@ import Tileset from "./Tileset.js";
 function defaultComputeViewDistance(tile) {
   return (
     tile.tileset.viewDistance *
-    Math.cbrt(tile.volume / tile.tileset.root.volume)
+    Math.cbrt(tile.diagonal / tile.tileset.root.diagonal)
   );
 }
 

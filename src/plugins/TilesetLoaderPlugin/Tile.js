@@ -65,6 +65,8 @@ export default class Tile {
     const halfYVector = [-d, -e, -f];
     const halfZVector = [g, h, i];
 
+    this.diagonal = math.lenVec3(math.addVec3(math.addVec3(halfXVector, halfYVector), halfZVector)) * 2;
+
     this.xSize = math.lenVec3(halfXVector);
     this.ySize = math.lenVec3(halfZVector);
     this.zSize = math.lenVec3(halfYVector);

@@ -2,8 +2,6 @@ import Tile from "./Tile.js";
 
 import { eachLimit, makeQueue } from "./utils.js";
 
-import { math } from "../../viewer/scene/math/math.js";
-
 let tilesetIndex = 0;
 
 export default class Tileset {
@@ -32,9 +30,6 @@ export default class Tileset {
     if (tilesetData.root.transform) {
       this.rootTransform = tilesetData.root.transform
     }
-
-    const [x, y, z, a, b, c, d, e, f, g, h, i] = tilesetData.root.boundingVolume.box;
-    this.diagonal = math.lenVec3(math.addVec3(math.addVec3([a, b, c], [d, e, f]), [g, h, i])) * 2;
 
     this.root = new Tile(this, tilesetData.root);
 
