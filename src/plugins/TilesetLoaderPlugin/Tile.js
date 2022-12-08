@@ -13,9 +13,6 @@ export default class Tile {
   constructor(tileset, tileData, parent = null) {
     this.tileset = tileset;
 
-    this.computeViewDistance =
-      tileset.plugin.cfg.computeViewDistance;
-
     this.computePriority =
       tileset.plugin.cfg.computePriority;
 
@@ -48,6 +45,8 @@ export default class Tile {
     this._visible = !parent; // root is visible
 
     this.priority = 1;
+
+    this.geometricError = tileData.geometricError;
 
     const [x, y, z, a, b, c, d, e, f, g, h, i] = tileData.boundingVolume.box;
 
@@ -107,7 +106,7 @@ export default class Tile {
   }
 
   get viewDistance() {
-    return this.computeViewDistance(this);
+    return this.tileset.sensitivity * this.geometricError;
   }
 
   get isWithinCameraVisibleRange() {

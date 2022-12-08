@@ -25,7 +25,7 @@ export default class Tileset {
 
     this.destroyed = false;
 
-    this._viewDistance = tilesetPlugin.cfg.viewDistance;
+    this._sensitivity = tilesetPlugin.cfg.sensitivity;
 
     if (tilesetData.root.transform) {
       this.rootTransform = tilesetData.root.transform
@@ -36,12 +36,12 @@ export default class Tileset {
     this.root.load().then(model => tilesetPlugin.viewer.cameraFlight.flyTo(model));
   }
 
-  get viewDistance() {
-    return this._viewDistance;
+  get sensitivity() {
+    return this._sensitivity;
   }
 
-  set viewDistance(value) {
-    this._viewDistance = value;
+  set sensitivity(value) {
+    this._sensitivity = value;
 
     this.updateVisibility();
   }
