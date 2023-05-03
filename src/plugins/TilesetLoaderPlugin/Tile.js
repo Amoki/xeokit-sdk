@@ -78,9 +78,9 @@ export default class Tile {
       this.zSize *
       2;
 
-    this.children = tileData.children.map(
+    this.children = tileData.children?.map(
       child => new Tile(tileset, child, this)
-    );
+    ) ?? [];
 
     tileset.tiles.add(this);
   }
