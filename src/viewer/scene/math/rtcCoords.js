@@ -12,18 +12,19 @@ const tempVec3a = math.vec3();
  */
 const createRTCViewMat = (function () {
 
-    const tempMat = new Float32Array(16);
+    const tempMat = new Float64Array(16);
     const rtcCenterWorld = new Float64Array(4);
     const rtcCenterView = new Float64Array(4);
 
-    return function (viewMat, rtcCenter, rtcViewMat = tempMat) {
+    return function (viewMat, rtcCenter, rtcViewMat) {
+        rtcViewMat = rtcViewMat || tempMat;
         rtcCenterWorld[0] = rtcCenter[0];
         rtcCenterWorld[1] = rtcCenter[1];
         rtcCenterWorld[2] = rtcCenter[2];
         rtcCenterWorld[3] = 1;
         math.transformVec4(viewMat, rtcCenterWorld, rtcCenterView);
         math.setMat4Translation(viewMat, rtcCenterView, rtcViewMat);
-        return rtcViewMat;
+        return rtcViewMat.slice ();
     }
 }());
 
@@ -77,7 +78,7 @@ function worldToRTCPos(worldPos, rtcCenter, rtcPos) {
  * ````false````, we can safely ignore the data returned in ````rtcPositions```` and ````rtcCenter````,
  * since ````rtcCenter```` will equal ````[0,0,0]````, and ````rtcPositions```` will contain identical values to ````positions````.
  */
-function worldToRTCPositions(worldPositions, rtcPositions, rtcCenter, cellSize = 1000000) {
+function worldToRTCPositions(worldPositions, rtcPositions, rtcCenter, cellSize = 1000) {
 
     const center = math.getPositionsCenter(worldPositions, tempVec3a);
 

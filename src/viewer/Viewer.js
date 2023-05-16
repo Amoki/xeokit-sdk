@@ -49,6 +49,7 @@ class Viewer {
      * @param {Boolean} [cfg.logarithmicDepthBufferEnabled=false] Whether to enable logarithmic depth buffer. When this is true,
      * you can set huge values for {@link Perspective#far} and {@link Ortho#far}, to push the far clipping plane back so
      * that it does not clip huge models.
+     * @param {Boolean} [cfg.colorTextureEnabled=true] Whether to enable base color texture rendering.
      * @param {Boolean} [cfg.pbrEnabled=false] Whether to enable physically-based rendering.
      * @param {LocaleService} [cfg.localeService=null] Optional locale-based translation service.
      */
@@ -85,7 +86,6 @@ class Viewer {
             canvasId: cfg.canvasId,
             canvasElement: cfg.canvasElement,
             keyboardEventsElement: cfg.keyboardEventsElement,
-            webgl2: false,
             contextAttr: {
                 preserveDrawingBuffer: cfg.preserveDrawingBuffer !== false,
                 premultipliedAlpha: (!!cfg.premultipliedAlpha),
@@ -107,7 +107,8 @@ class Viewer {
             entityOffsetsEnabled: (!!cfg.entityOffsetsEnabled),
             pickSurfacePrecisionEnabled: (!!cfg.pickSurfacePrecisionEnabled),
             logarithmicDepthBufferEnabled: (!!cfg.logarithmicDepthBufferEnabled),
-            pbrEnabled: (!!cfg.pbrEnabled)
+            pbrEnabled: (!!cfg.pbrEnabled),
+            colorTextureEnabled: (cfg.colorTextureEnabled !== false)
         });
 
         /**
@@ -161,6 +162,15 @@ class Viewer {
          * @private
          */
         this._eventSubs = {};
+    }
+
+    /**
+     * Returns the capabilities of this Viewer.
+     *
+     * @returns {{astcSupported: boolean, etc1Supported: boolean, pvrtcSupported: boolean, etc2Supported: boolean, dxtSupported: boolean, bptcSupported: boolean}}
+     */
+    get capabilities() {
+        return this.scene.capabilities;
     }
 
     /**
@@ -315,14 +325,6 @@ class Viewer {
 
         const needFinishSnapshot = (!this._snapshotBegun);
 
-        if (!this._snapshotBegun) {
-            this.beginSnapshot();
-        }
-
-        if (!params.includeGizmos) {
-            this.sendToPlugins("snapshotStarting"); // Tells plugins to hide things that shouldn't be in snapshot
-        }
-
         const resize = (params.width !== undefined && params.height !== undefined);
         const canvas = this.scene.canvas.canvas;
         const saveWidth = canvas.clientWidth;
@@ -334,8 +336,16 @@ class Viewer {
         const height = params.height ? Math.floor(params.height) : canvas.height;
 
         if (resize) {
-            canvas.style.width = width + "px";
-            canvas.style.height = height + "px";
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        if (!this._snapshotBegun) {
+            this.beginSnapshot();
+        }
+
+        if (!params.includeGizmos) {
+            this.sendToPlugins("snapshotStarting"); // Tells plugins to hide things that shouldn't be in snapshot
         }
 
         this.scene._renderer.renderSnapshot();
@@ -343,8 +353,6 @@ class Viewer {
         const imageDataURI = this.scene._renderer.readSnapshot(params);
 
         if (resize) {
-            canvas.style.width = saveCssWidth;
-            canvas.style.height = saveCssHeight;
             canvas.width = saveWidth;
             canvas.height = saveHeight;
 

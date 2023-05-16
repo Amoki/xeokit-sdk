@@ -1,7 +1,7 @@
-import {Mesh} from "../mesh";
-import {ReadableGeometry} from "../geometry";
-import {PhongMaterial, Texture} from "../materials";
-import {math} from "../math";
+import {Mesh} from "../mesh/Mesh.js";
+import {ReadableGeometry} from "../geometry/ReadableGeometry.js";
+import {PhongMaterial, Texture} from "../materials/index.js";
+import {math} from "../math/math.js";
 import {Marker} from "./Marker.js";
 
 /**
@@ -18,7 +18,7 @@ import {Marker} from "./Marker.js";
  * [[Run this example](http://xeokit.github.io/xeokit-sdk/examples/#markers_SpriteMarker)]
  *
  * ```` javascript
- * import {Viewer, SpriteMarker } from "../dist/xeokit-sdk.es.js";
+ * import {Viewer, SpriteMarker } from "./https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/xeokit-sdk.es.min.js";
  *
  * const viewer = new Viewer({
  *        canvasId: "myCanvas",
