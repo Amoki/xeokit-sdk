@@ -2350,6 +2350,19 @@ class VBOSceneModel extends Component {
      * @param {Number} [cfg.roughness=1] Roughness factor in range ````[0..1]````. Overridden by texture set ````metallicRoughnessTexture````.
      */
     createMesh(cfg) {
+        if (this._vfcManager && !this._vfcManager.finalized) {
+            if (cfg.color) {
+                cfg.color = cfg.color.slice ();
+            }
+
+            if (cfg.positionsDecodeMatrix) {
+                cfg.positionsDecodeMatrix = cfg.positionsDecodeMatrix.slice ();
+            }
+
+            this._vfcManager.addMesh (cfg);
+
+            return;
+        }
 
         let id = cfg.id;
         if (id === undefined || id === null) {
@@ -2817,6 +2830,11 @@ ${cfg.uv && cfg.uv.length > 0 ? 1 : 0}-${cfg.uvCompressed && cfg.uvCompressed.le
      * @returns {Entity}
      */
     createEntity(cfg) {
+        if (this._vfcManager && !this._vfcManager.finalized) {
+            this._vfcManager.addEntity (cfg);
+            return;
+        }
+
         // Validate or generate Entity ID
         let id = cfg.id;
         if (id === undefined) {
@@ -2947,6 +2965,14 @@ ${cfg.uv && cfg.uv.length > 0 ? 1 : 0}-${cfg.uvCompressed && cfg.uvCompressed.le
         this.glRedraw();
 
         this.scene._aabbDirty = true;
+
+        if (this._targetLodFps) {
+            this.lodCullingManager = new LodCullingManager (
+                this,
+                this._lodLevels,
+                this._targetLodFps
+            );
+        }
     }
 
     _rebuildAABB() {

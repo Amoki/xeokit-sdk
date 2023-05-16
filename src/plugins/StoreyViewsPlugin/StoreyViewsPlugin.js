@@ -819,4 +819,4 @@ class StoreyViewsPlugin extends Plugin {
     }
 }
 
-export {StoreyViewsPlugin}
+export {StoreyViewsPlugin};

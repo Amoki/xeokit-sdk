@@ -3,18 +3,6 @@ import { Plugin } from "../../viewer/Plugin.js";
 
 import Tileset from "./Tileset.js";
 
-/**
- * A function used to compute tile view distance.
- *
- * @param { TSL.Tile } tile
- * @returns { number }
- */
-function defaultComputeViewDistance(tile) {
-  return (
-    tile.tileset.viewDistance *
-    Math.cbrt(tile.volume / tile.tileset.root.volume)
-  );
-}
 
 /**
  * A function used to compute tile priority.
@@ -52,13 +40,13 @@ function defaultComputePriority(tile) {
  *
  * const tileset = this.tilesetLoaderPlugin.load(jsonTileset);
  * 
- * tileset.viewDistance = 30; // Can be dynamically updated
+ * tileset.sensitivity = 50; // Can be dynamically updated
  *
  * // then
  * tileset.destroy();
  * ```
  *
- * It is possible to change the behaviour of this plugin using the two configuration functions `computeViewDistance`& `computePriority`.
+ * It is possible to change the behaviour of this plugin using the configuration function `computePriority`.
  * 
  * @class TilesetLoaderPlugin
  */
@@ -68,10 +56,10 @@ class TilesetLoaderPlugin extends Plugin {
    *
    * @param { Viewer } viewer The Viewer.
    * @param { Object } cfg Plugin configuration.
-   * @param { (tile: TSL.Tile) => number } [cfg.computeViewDistance] A function used to compute tile view distance.
    * @param { (tile: TSL.Tile) => number } [cfg.computePriority] A function used to compute tile priority.
-   * @param { number } [cfg.viewDistance=100] The distance from the camera used to compute the tiles visibility.
+   * @param { number } [cfg.sensitivity=300] The distance from the camera used to compute the tiles visibility.
    * @param { number } [cfg.distanceFactorToFreeData=3] The distance from the camera used to free tiles data.
+   * @param { boolean } [cfg.dev=false] If `true`, Tiles bounding box are shown.
    * 
    * @returns { TSL.TilesetLoaderPlugin }
    */
@@ -79,17 +67,17 @@ class TilesetLoaderPlugin extends Plugin {
     super("TilesetLoader", viewer);
 
     const {
-      computeViewDistance = defaultComputeViewDistance,
       computePriority = defaultComputePriority,
-      viewDistance = 100,
+      sensitivity = 50,
       distanceFactorToFreeData = 3,
+      dev = false,
     } = cfg;
 
     this.cfg = {
-      computeViewDistance,
       computePriority,
       distanceFactorToFreeData,
-      viewDistance,
+      sensitivity,
+      dev
     };
 
     this.tilesets = new Set();

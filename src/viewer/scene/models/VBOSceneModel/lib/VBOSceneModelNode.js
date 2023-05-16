@@ -77,7 +77,6 @@ class VBOSceneModelNode {
         this._culledVFC = false;
         this._culledLOD = false;
 
-
         if (this._isObject) {
             model.scene._registerObject(this);
         }
