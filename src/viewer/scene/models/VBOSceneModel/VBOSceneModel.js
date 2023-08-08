@@ -2058,12 +2058,8 @@ class VBOSceneModel extends Component {
             this.error("Geometry already created: " + geometryId);
             return;
         }
-        const primitive = cfg.primitive;
-        if (primitive === undefined || primitive === null) {
-            this.error("Param expected: primitive");
-            return;
-        }
-        if (primitive !== "points" && primitive !== "lines" && primitive !== "triangles" && primitive !== "solid" && primitive !== "surface") {
+       cfg.primitive = cfg.primitive || "triangles";
+        if (cfg.primitive !== "points" && cfg.primitive !== "lines" && cfg.primitive !== "triangles" && cfg.primitive !== "solid" && cfg.primitive !== "surface") {
             this.error(`Unsupported value for 'primitive': '${primitive}' - supported values are 'points', 'lines', 'triangles', 'solid' and 'surface'. Defaulting to 'triangles'.`);
             return;
         }
@@ -2079,11 +2075,19 @@ class VBOSceneModel extends Component {
             this.error("Param expected: `uvDecodeMatrix` (required for `uvCompressed')");
             return null;
         }
-        if (!cfg.indices && primitive !== "points") {
-            this.error(`Param expected: indices (required for '${primitive}' primitive type)`);
+        if (!cfg.indices && cfg.primitive !== "points") {
+            this.error(`Param expected: indices (required for '${cfg.primitive}' primitive type)`);
             return null;
         }
         const geometry = new VBOSceneModelGeometry(geometryId, this, cfg);
+
+        // Temporarily store the positions so the TrianglesInstancingLayer
+        // can properly initilize the AABB's in case the instancing matrices
+        // are not TRS-separable and have some shear factor
+        geometry._positions = cfg.positions;
+        geometry._positionsCompressed = cfg.positionsCompressed;
+        geometry._positionsDecodeMatrix = cfg.positionsDecodeMatrix;
+
         this._geometries[geometryId] = geometry;
         this._numTriangles += (cfg.indices ? Math.round(cfg.indices.length / 3) : 0);
         this.numGeometries++;
@@ -2922,6 +2926,17 @@ ${cfg.uv && cfg.uv.length > 0 ? 1 : 0}-${cfg.uvCompressed && cfg.uvCompressed.le
 
         if (this.destroyed) {
             return;
+        }
+
+        // Free up temporary data used by the TrianglesInstancingLayer
+        // for AABB initizalization purposes
+        for (const geometryId in this._geometries)
+        {
+            if (this._geometries.hasOwnProperty(geometryId)) {
+                delete this._geometries[geometryId]._positions;
+                delete this._geometries[geometryId]._positionsCompressed;
+                delete this._geometries[geometryId]._positionsDecodeMatrix;
+            }
         }
 
         for (const layerId in this._instancingLayers) {
