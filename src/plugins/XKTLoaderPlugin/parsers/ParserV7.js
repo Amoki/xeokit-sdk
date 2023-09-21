@@ -118,7 +118,9 @@ function convertColorsRGBToRGBA(colorsRGB) {
     return colorsRGBA;
 }
 
-function load(viewer, options, inflatedData, sceneModel) {
+function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx) {
+
+    const modelPartId = manifestCtx.getNextId();
 
     const positions = inflatedData.positions;
     const normals = inflatedData.normals;
@@ -274,7 +276,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                 const meshMetallic = eachMeshMaterial[(meshIndex * 6) + 4] / 255.0;
                 const meshRoughness = eachMeshMaterial[(meshIndex * 6) + 5] / 255.0;
 
-                const meshId = nextMeshId++;
+                const meshId = manifestCtx.getNextId();
 
                 if (isReusedGeometry) {
 
@@ -283,7 +285,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                     const meshMatrixIndex = eachMeshMatricesPortion[meshIndex];
                     const meshMatrix = matrices.slice(meshMatrixIndex, meshMatrixIndex + 16);
 
-                    const geometryId = "geometry." + tileIndex + "." + geometryIndex; // These IDs are local to the VBOSceneModel
+                    const geometryId = `${modelPartId}-geometry.${tileIndex}.${geometryIndex}`; // These IDs are local to the SceneModel
 
                     if (!geometryCreated[geometryId]) {
 
@@ -427,10 +429,10 @@ function load(viewer, options, inflatedData, sceneModel) {
 /** @private */
 const ParserV7 = {
     version: 7,
-    parse: function (viewer, options, elements, sceneModel) {
+    parse: function (viewer, options, elements, sceneModel, metaModel, manifestCtx) {
         const deflatedData = extract(elements);
         const inflatedData = inflate(deflatedData);
-        load(viewer, options, inflatedData, sceneModel);
+        load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx);
     }
 };
 

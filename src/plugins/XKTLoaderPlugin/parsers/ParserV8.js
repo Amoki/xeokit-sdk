@@ -128,7 +128,9 @@ function convertColorsRGBToRGBA(colorsRGB) {
     return colorsRGBA;
 }
 
-function load(viewer, options, inflatedData, sceneModel) {
+function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx) {
+
+    const modelPartId = manifestCtx.getNextId();
 
     const types = JSON.parse(inflatedData.types);
     const eachMetaObjectId = JSON.parse(inflatedData.eachMetaObjectId);
@@ -168,27 +170,17 @@ function load(viewer, options, inflatedData, sceneModel) {
     const numEntities = eachEntityMetaObject.length;
     const numTiles = eachTileEntitiesPortion.length;
 
-    let nextMeshId = 0;
-
-    // Create metamodel, unless already loaded from JSON by XKTLoaderPlugin
-
-    const metaModelId = sceneModel.id;
-
-    if (!viewer.metaScene.metaModels[metaModelId]) {
-
+    if (metaModel) {
         const metaModelData = {
             metaObjects: []
         };
-
         for (let metaObjectIndex = 0; metaObjectIndex < numMetaObjects; metaObjectIndex++) {
-
             const metaObjectId = eachMetaObjectId[metaObjectIndex];
             const typeIndex = eachMetaObjectType[metaObjectIndex];
             const metaObjectType = types[typeIndex] || "default";
             const metaObjectName = eachMetaObjectName[metaObjectIndex];
             const metaObjectParentIndex = eachMetaObjectParent[metaObjectIndex];
             const metaObjectParentId = (metaObjectParentIndex !== metaObjectIndex) ? eachMetaObjectId[metaObjectParentIndex] : null;
-
             metaModelData.metaObjects.push({
                 id: metaObjectId,
                 type: metaObjectType,
@@ -196,15 +188,10 @@ function load(viewer, options, inflatedData, sceneModel) {
                 parent: metaObjectParentId
             });
         }
-
-        viewer.metaScene.createMetaModel(metaModelId, metaModelData, {
+        metaModel.loadData(metaModelData, {
             includeTypes: options.includeTypes,
             excludeTypes: options.excludeTypes,
             globalizeObjectIds: options.globalizeObjectIds
-        });
-
-        sceneModel.once("destroyed", () => {
-            viewer.metaScene.destroyMetaModel(metaModelId);
         });
     }
 
@@ -332,7 +319,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                 const meshMetallic = eachMeshMaterial[(meshIndex * 6) + 4] / 255.0;
                 const meshRoughness = eachMeshMaterial[(meshIndex * 6) + 5] / 255.0;
 
-                const meshId = nextMeshId++;
+                const meshId = manifestCtx.getNextId();
 
                 if (isReusedGeometry) {
 
@@ -341,7 +328,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                     const meshMatrixIndex = eachMeshMatricesPortion[meshIndex];
                     const meshMatrix = matrices.slice(meshMatrixIndex, meshMatrixIndex + 16);
 
-                    const geometryId = "geometry." + tileIndex + "." + geometryIndex; // These IDs are local to the VBOSceneModel
+                     const geometryId = `${modelPartId}-geometry.${tileIndex}.${geometryIndex}`; // These IDs are local to the SceneModel
 
                     let geometryArrays = geometryArraysCache[geometryId];
 
@@ -566,10 +553,10 @@ function load(viewer, options, inflatedData, sceneModel) {
 /** @private */
 const ParserV8 = {
     version: 8,
-    parse: function (viewer, options, elements, sceneModel) {
+    parse: function (viewer, options, elements, sceneModel, metaModel, manifestCtx) {
         const deflatedData = extract(elements);
         const inflatedData = inflate(deflatedData);
-        load(viewer, options, inflatedData, sceneModel);
+        load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx);
     }
 };
 

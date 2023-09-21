@@ -72,7 +72,9 @@ const decompressColor = (function () {
     };
 })();
 
-function load(viewer, options, inflatedData, sceneModel) {
+function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx) {
+
+    const modelPartId = manifestCtx.getNextId();
 
     const positions = inflatedData.positions;
     const normals = inflatedData.normals;
@@ -101,8 +103,6 @@ function load(viewer, options, inflatedData, sceneModel) {
     const numPrimitiveInstances = primitiveInstances.length;
     const numEntities = eachEntityId.length;
     const numTiles = eachTileEntitiesPortion.length;
-
-    let nextMeshId = 0;
 
     // Count instances of each primitive
 
@@ -223,13 +223,13 @@ function load(viewer, options, inflatedData, sceneModel) {
                 const color = decompressColor(eachPrimitiveColorAndOpacity.subarray((primitiveIndex * 4), (primitiveIndex * 4) + 3));
                 const opacity = eachPrimitiveColorAndOpacity[(primitiveIndex * 4) + 3] / 255.0;
 
-                const meshId = nextMeshId++;
+                const meshId = manifestCtx.getNextId();
 
                 if (isReusedPrimitive) {
 
                     // Create mesh for multi-use primitive - create (or reuse) geometry, create mesh using that geometry
 
-                    const geometryId = "geometry." + tileIndex + "." + primitiveIndex; // These IDs are local to the VBOSceneModel
+                    const geometryId = `${modelPartId}-geometry.${tileIndex}.${primitiveIndex}`; // These IDs are local to the SceneModel
 
                     if (!geometryCreated[geometryId]) {
 
@@ -237,7 +237,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                             id: geometryId,
                             primitive: "triangles",
                             positionsCompressed: primitivePositions,
-                            normalsCompressed: primitiveNormals,
+                         //   normalsCompressed: primitiveNormals,
                             indices: primitiveIndices,
                             edgeIndices: primitiveEdgeIndices,
                             positionsDecodeMatrix: reusedPrimitivesDecodeMatrix
@@ -291,10 +291,10 @@ function load(viewer, options, inflatedData, sceneModel) {
 /** @private */
 const ParserV6 = {
     version: 6,
-    parse: function (viewer, options, elements, sceneModel) {
+    parse: function (viewer, options, elements, sceneModel, metaModel, manifestCtx) {
         const deflatedData = extract(elements);
         const inflatedData = inflate(deflatedData);
-        load(viewer, options, inflatedData, sceneModel);
+        load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx);
     }
 };
 

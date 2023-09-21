@@ -113,7 +113,9 @@ const imagDataToImage = (function () {
     };
 })();
 
-function load(viewer, options, inflatedData, sceneModel) {
+function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx) {
+
+    const modelPartId = manifestCtx.getNextId();
 
     const metadata = inflatedData.metadata;
     const textureData = inflatedData.textureData;
@@ -151,23 +153,8 @@ function load(viewer, options, inflatedData, sceneModel) {
     const numEntities = eachEntityMeshesPortion.length;
     const numTiles = eachTileEntitiesPortion.length;
 
-    let nextMeshId = 0;
-
-    // Create metamodel, unless already loaded from external JSON file by XKTLoaderPlugin
-
-    const metaModelId = sceneModel.id;
-
-    if (!viewer.metaScene.metaModels[metaModelId]) {
-
-        viewer.metaScene.createMetaModel(metaModelId, metadata, {
-            includeTypes: options.includeTypes,
-            excludeTypes: options.excludeTypes,
-            globalizeObjectIds: options.globalizeObjectIds
-        });
-
-        sceneModel.once("destroyed", () => {
-            viewer.metaScene.destroyMetaModel(metaModelId);
-        });
+    if (metaModel) {
+        metaModel.loadData(metadata); // Can be empty
     }
 
     // Create textures
@@ -196,7 +183,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
             const imageDataSubarray = new Uint8Array(textureData.subarray(textureDataPortionStart, textureDataPortionEnd));
             const arrayBuffer = imageDataSubarray.buffer;
-            const textureId = `texture-${textureIndex}`;
+            const textureId = `${modelPartId}-texture-${textureIndex}`;
 
             if (compressed) {
 
@@ -237,7 +224,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
     for (let textureSetIndex = 0; textureSetIndex < numTextureSets; textureSetIndex++) {
         const eachTextureSetTexturesIndex = textureSetIndex * 5;
-        const textureSetId = `textureSet-${textureSetIndex}`;
+        const textureSetId = `${modelPartId}-textureSet-${textureSetIndex}`;
         const colorTextureIndex = eachTextureSetTextures[eachTextureSetTexturesIndex + 0];
         const metallicRoughnessTextureIndex = eachTextureSetTextures[eachTextureSetTexturesIndex + 1];
         const normalsTextureIndex = eachTextureSetTextures[eachTextureSetTexturesIndex + 2];
@@ -245,11 +232,11 @@ function load(viewer, options, inflatedData, sceneModel) {
         const occlusionTextureIndex = eachTextureSetTextures[eachTextureSetTexturesIndex + 4];
         sceneModel.createTextureSet({
             id: textureSetId,
-            colorTextureId: colorTextureIndex >= 0 ? `texture-${colorTextureIndex}` : null,
-            normalsTextureId: normalsTextureIndex >= 0 ? `texture-${normalsTextureIndex}` : null,
-            metallicRoughnessTextureId: metallicRoughnessTextureIndex >= 0 ? `texture-${metallicRoughnessTextureIndex}` : null,
-            emissiveTextureId: emissiveTextureIndex >= 0 ? `texture-${emissiveTextureIndex}` : null,
-            occlusionTextureId: occlusionTextureIndex >= 0 ? `texture-${occlusionTextureIndex}` : null
+            colorTextureId: colorTextureIndex >= 0 ? `${modelPartId}-texture-${colorTextureIndex}` : null,
+            normalsTextureId: normalsTextureIndex >= 0 ? `${modelPartId}-texture-${normalsTextureIndex}` : null,
+            metallicRoughnessTextureId: metallicRoughnessTextureIndex >= 0 ? `${modelPartId}-texture-${metallicRoughnessTextureIndex}` : null,
+            emissiveTextureId: emissiveTextureIndex >= 0 ? `${modelPartId}-texture-${emissiveTextureIndex}` : null,
+            occlusionTextureId: occlusionTextureIndex >= 0 ? `${modelPartId}-texture-${occlusionTextureIndex}` : null
         });
     }
 
@@ -372,14 +359,14 @@ function load(viewer, options, inflatedData, sceneModel) {
 
                 const textureSetIndex = eachMeshTextureSet[meshIndex];
 
-                const textureSetId = (textureSetIndex >= 0) ? `textureSet-${textureSetIndex}` : null;
+                const textureSetId = (textureSetIndex >= 0) ? `${modelPartId}-textureSet-${textureSetIndex}` : null;
 
                 const meshColor = decompressColor(eachMeshMaterialAttributes.subarray((meshIndex * 6), (meshIndex * 6) + 3));
                 const meshOpacity = eachMeshMaterialAttributes[(meshIndex * 6) + 3] / 255.0;
                 const meshMetallic = eachMeshMaterialAttributes[(meshIndex * 6) + 4] / 255.0;
                 const meshRoughness = eachMeshMaterialAttributes[(meshIndex * 6) + 5] / 255.0;
 
-                const meshId = nextMeshId++;
+                const meshId = manifestCtx.getNextId();
 
                 if (isReusedGeometry) {
 
@@ -388,7 +375,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                     const meshMatrixIndex = eachMeshMatricesPortion[meshIndex];
                     const meshMatrix = matrices.slice(meshMatrixIndex, meshMatrixIndex + 16);
 
-                    const geometryId = "geometry." + tileIndex + "." + geometryIndex; // These IDs are local to the VBOSceneModel
+                    const geometryId = `${modelPartId}-geometry.${tileIndex}.${geometryIndex}`; // These IDs are local to the SceneModel
 
                     let geometryArrays = geometryArraysCache[geometryId];
 
@@ -430,10 +417,15 @@ function load(viewer, options, inflatedData, sceneModel) {
                                 geometryValid = (geometryArrays.geometryPositions.length > 0 && geometryArrays.geometryIndices.length > 0);
                                 break;
                             case 4:
-                                geometryArrays.primitiveName = "line-strip";
+                                geometryArrays.primitiveName = "lines";
                                 geometryArrays.geometryPositions = positions.subarray(eachGeometryPositionsPortion [geometryIndex], atLastGeometry ? positions.length : eachGeometryPositionsPortion [geometryIndex + 1]);
-                                geometryArrays.geometryIndices = lineStripToLines(indices.subarray(eachGeometryIndicesPortion [geometryIndex], atLastGeometry ? indices.length : eachGeometryIndicesPortion [geometryIndex + 1]));
-                                geometryValid = (geometryArrays.geometryPositions.length > 0 && geometryArrays.geometryIndices.length > 0);
+                                geometryArrays.geometryIndices = lineStripToLines(
+                                    geometryArrays.geometryPositions,
+                                    indices.subarray(eachGeometryIndicesPortion [geometryIndex],
+                                        atLastGeometry
+                                            ? indices.length
+                                            : eachGeometryIndicesPortion [geometryIndex + 1]));
+                                 geometryValid = (geometryArrays.geometryPositions.length > 0 && geometryArrays.geometryIndices.length > 0);
                                 break;
                             default:
                                 continue;
@@ -487,7 +479,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
                             sceneModel.createMesh(utils.apply(meshDefaults, {
                                 id: meshId,
-                                textureSetId: textureSetId,
+                                textureSetId,
                                 origin: tileCenter,
                                 primitive: geometryArrays.primitiveName,
                                 positionsCompressed: transformedAndRecompressedPositions,
@@ -526,8 +518,8 @@ function load(viewer, options, inflatedData, sceneModel) {
 
                             sceneModel.createMesh(utils.apply(meshDefaults, {
                                 id: meshId,
-                                geometryId: geometryId,
-                                textureSetId: textureSetId,
+                                geometryId,
+                                textureSetId,
                                 matrix: meshMatrix,
                                 color: meshColor,
                                 metallic: meshMetallic,
@@ -585,9 +577,13 @@ function load(viewer, options, inflatedData, sceneModel) {
                             geometryValid = (geometryPositions.length > 0 && geometryIndices.length > 0);
                             break;
                         case 4:
-                            primitiveName = "lines-strip";
+                            primitiveName = "lines";
                             geometryPositions = positions.subarray(eachGeometryPositionsPortion [geometryIndex], atLastGeometry ? positions.length : eachGeometryPositionsPortion [geometryIndex + 1]);
-                            geometryIndices = lineStripToLines(indices.subarray(eachGeometryIndicesPortion [geometryIndex], atLastGeometry ? indices.length : eachGeometryIndicesPortion [geometryIndex + 1]));
+                            geometryIndices = lineStripToLines(
+                                geometryPositions,
+                                indices.subarray(eachGeometryIndicesPortion [geometryIndex], atLastGeometry
+                                    ? indices.length
+                                    : eachGeometryIndicesPortion [geometryIndex + 1]));
                             geometryValid = (geometryPositions.length > 0 && geometryIndices.length > 0);
                             break;
                         default:
@@ -598,7 +594,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
                         sceneModel.createMesh(utils.apply(meshDefaults, {
                             id: meshId,
-                            textureSetId: textureSetId,
+                            textureSetId,
                             origin: tileCenter,
                             primitive: primitiveName,
                             positionsCompressed: geometryPositions,
@@ -631,25 +627,29 @@ function load(viewer, options, inflatedData, sceneModel) {
     }
 }
 
-function lineStripToLines(lineStrip) {
-    if (lineStrip.length < 2) {
-        return lineStrip;
+function lineStripToLines(positions, indices) {
+    const linesIndices = [];
+    if (indices.length > 1) {
+        for (let i = 0, len = indices.length - 1; i < len; i++) {
+            linesIndices.push(indices[i]);
+            linesIndices.push(indices[i + 1]);
+        }
+    } else if (positions.length > 1) {
+        for (let i = 0, len = (positions.length / 3) - 1; i < len; i++) {
+            linesIndices.push(i);
+            linesIndices.push(i + 1);
+        }
     }
-    const lines = [];
-    for (let i = 0; i < lineStrip.length - 1; i++) {
-        lines.push(lineStrip[i]);
-        lines.push(lineStrip[i + 1]);
-    }
-    return lines;
+    return linesIndices;
 }
 
 /** @private */
 const ParserV10 = {
     version: 10,
-    parse: function (viewer, options, elements, sceneModel) {
+    parse: function (viewer, options, elements, sceneModel, metaModel, manifestCtx) {
         const deflatedData = extract(elements);
         const inflatedData = inflate(deflatedData);
-        load(viewer, options, inflatedData, sceneModel);
+        load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx);
     }
 };
 

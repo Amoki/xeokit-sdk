@@ -60,7 +60,9 @@ const decompressColor = (function () {
     };
 })();
 
-function load(viewer, options, inflatedData, sceneModel) {
+function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx) {
+
+    const modelPartId = manifestCtx.getNextId();
 
     sceneModel.positionsCompression = "disabled"; // Positions in XKT V4 are floats, which we never quantize, for precision with big models
     sceneModel.normalsCompression = "precompressed"; // Normals are oct-encoded though
@@ -141,7 +143,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
             // Primitive instanced by more than one entity, and has positions in Model-space
 
-            var geometryId = "geometry" + primitiveIndex; // These IDs are local to the VBOSceneModel
+            const geometryId = `${modelPartId}-geometry.${primitiveIndex}`; // These IDs are local to the SceneModel
 
             sceneModel.createGeometry({
                 id: geometryId,
@@ -158,7 +160,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
             // Primitive is used only by one entity, and has positions pre-transformed into World-space
 
-            const meshId = primitiveIndex; // These IDs are local to the VBOSceneModel
+            const meshId = primitiveIndex; // These IDs are local to the SceneModel
 
             const entityIndex = batchedPrimitiveEntityIndexes[primitiveIndex];
             const entityId = eachEntityId[entityIndex];
@@ -234,10 +236,10 @@ function load(viewer, options, inflatedData, sceneModel) {
 /** @private */
 const ParserV5 = {
     version: 5,
-    parse: function (viewer, options, elements, sceneModel) {
+    parse: function (viewer, options, elements, sceneModel, metaModel, manifestCtx) {
         const deflatedData = extract(elements);
         const inflatedData = inflate(deflatedData);
-        load(viewer, options, inflatedData, sceneModel);
+        load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx);
     }
 };
 

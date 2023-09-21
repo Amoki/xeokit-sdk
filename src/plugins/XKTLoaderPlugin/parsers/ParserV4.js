@@ -65,7 +65,9 @@ const decompressColor = (function () {
     };
 })();
 
-function load(viewer, options, inflatedData, sceneModel) {
+function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx) {
+
+    const modelPartId = manifestCtx.getNextId();
 
     sceneModel.positionsCompression = "precompressed";
     sceneModel.normalsCompression = "precompressed";
@@ -148,7 +150,7 @@ function load(viewer, options, inflatedData, sceneModel) {
     // Create 1) geometries for instanced primitives, and 2) meshes for batched primitives.  We create all the
     // batched meshes now, before we create entities, because we're creating the batched meshes in runs that share
     // the same decode matrices. Each run of meshes with the same decode matrix will end up in the same
-    // BatchingLayer; the VBOSceneModel#createMesh() method starts a new BatchingLayer each time the decode
+    // BatchingLayer; the SceneModel#createMesh() method starts a new BatchingLayer each time the decode
     // matrix has changed since the last invocation of that method, hence why we need to order batched meshes
     // in runs like this.
 
@@ -174,7 +176,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
             // Primitive instanced by more than one entity, and has positions in Model-space
 
-            var geometryId = "geometry" + orderedPrimitiveIndex; // These IDs are local to the VBOSceneModel
+           const geometryId = `${modelPartId}-geometry.${orderedPrimitiveIndex}`; // These IDs are local to the SceneModel
 
             sceneModel.createGeometry({
                 id: geometryId,
@@ -192,7 +194,7 @@ function load(viewer, options, inflatedData, sceneModel) {
 
             // Primitive is used only by one entity, and has positions pre-transformed into World-space
 
-            const meshId = orderedPrimitiveIndex; // These IDs are local to the VBOSceneModel
+            const meshId = `${modelPartId}-${orderedPrimitiveIndex}`;
 
             const entityIndex = batchedPrimitiveEntityIndexes[orderedPrimitiveIndex];
             const entityId = eachEntityId[entityIndex];
@@ -235,8 +237,9 @@ function load(viewer, options, inflatedData, sceneModel) {
 
                 const meshDefaults = {}; // TODO: get from lookup from entity IDs
 
-                const meshId = "instance." + countInstances++;
-                const geometryId = "geometry" + primitiveIndex;
+                const meshId = `${modelPartId}-instance.${countInstances++}`;
+                const geometryId = `${modelPartId}-geometry.${primitiveIndex}`; // These IDs are local to the SceneModel
+
                 const matricesIndex = (eachEntityMatricesPortion [entityIndex]) * 16;
                 const matrix = matrices.subarray(matricesIndex, matricesIndex + 16);
 
@@ -249,6 +252,7 @@ function load(viewer, options, inflatedData, sceneModel) {
                 meshIds.push(meshId);
 
             } else {
+                const meshId = `${modelPartId}-${primitiveIndex}`;
                 meshIds.push(primitiveIndex);
             }
         }
@@ -269,10 +273,10 @@ function load(viewer, options, inflatedData, sceneModel) {
 /** @private */
 const ParserV4 = {
     version: 4,
-    parse: function (viewer, options, elements, sceneModel) {
+    parse: function (viewer, options, elements, sceneModel, metaModel, manifestCtx) {
         const deflatedData = extract(elements);
         const inflatedData = inflate(deflatedData);
-        load(viewer, options, inflatedData, sceneModel);
+        load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx);
     }
 };
 
