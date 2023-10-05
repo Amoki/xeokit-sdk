@@ -98,7 +98,8 @@ class PickController {
             const snapPickResult = this._scene.snapPick({
                 canvasPos: this.pickCursorPos,
                 snapRadius: this._configs.snapRadius,
-                snapMode: this._configs.snapMode,
+                snapVertex: this._configs.snapVertex,
+                snapEdge: this._configs.snapEdge,
             });
             if (snapPickResult && snapPickResult.snappedWorldPos) {
                 this.snapPickResult = snapPickResult;
@@ -189,20 +190,19 @@ class PickController {
 
         if (this.hoveredSnappedOrSurfaceOff) {
             this._cameraControl.fire("hoverSnapOrSurfaceOff", {
-                canvasPos: this.pickCursorPos
+                canvasPos: this.pickCursorPos,
+                cursorPos : this.pickCursorPos
             }, true);
         }
 
         if (this.snappedOrPicked) {
             if (this.snapPickResult) {
                 const pickResult = new PickResult();
+                pickResult.snappedToVertex = this.snapPickResult.snappedToVertex;
+                pickResult.snappedToEdge = this.snapPickResult.snappedToEdge;
                 pickResult.worldPos = this.snapPickResult.snappedWorldPos;
+                pickResult.cursorPos = this.pickCursorPos;
                 pickResult.canvasPos = this.snapPickResult.snappedCanvasPos;
-                if (this._configs.snapMode === "vertex") {
-                    pickResult.snappedToVertex = true;
-                } else {
-                    pickResult.snappedToEdge = true;
-                }
                 this._cameraControl.fire("hoverSnapOrSurface", pickResult, true);
                 this.snapPickResult = null;
             } else {

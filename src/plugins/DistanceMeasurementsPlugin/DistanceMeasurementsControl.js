@@ -1,7 +1,14 @@
-import {Dot} from "../lib/html/Dot.js";
 import {Component} from "../../viewer/scene/Component.js";
 import {math} from "../../viewer/scene/math/math.js";
-import {Marker} from "../../viewer/index.js";
+
+
+const TOUCH_FINDING_ORIGIN = 0;
+const QUICK_TOUCH_FINDING_START = 1;
+const LONG_TOUCH_FINDING_START = 2;
+const TOUCH_FINDING_TARGET = 3;
+const QUICK_TOUCH_FINDING_END = 4;
+const LONG_TOUCH_FINDING_END = 5;
+const TOUCH_CANCELING = 6;
 
 /**
  * Creates {@link DistanceMeasurement}s from mouse and touch input.
@@ -29,7 +36,6 @@ class DistanceMeasurementsControl extends Component {
 
         this._active = false;
 
-        // Add a marker to the canvas
         const markerDiv = document.createElement('div');
         const canvas = this.scene.canvas.canvas;
         canvas.parentNode.insertBefore(markerDiv, canvas);
@@ -46,12 +52,9 @@ class DistanceMeasurementsControl extends Component {
 
         this.markerDiv = markerDiv;
 
-        // Mouse input uses a combo of events that requires us to track
-        // the current DistanceMeasurement under construction. This is not used for touch input, which
-        // just uses touch-move-release to make a measurement.
-        this._currentDistanceMeasurementByMouse = null;
+        this._currentDistanceMeasurement = null;
 
-        this._currentDistanceMeasurementByMouseInittouchState = {
+        this._currentDistanceMeasurementInitState = {
             wireVisible: null,
             axisVisible: null,
             xAxisVisible: null,
@@ -60,35 +63,19 @@ class DistanceMeasurementsControl extends Component {
             targetVisible: null,
         }
 
-        // Shows 2D canvas pos of touch start
-        this._touchStartDot = new Dot(plugin._container, {
-            fillColor: plugin.defaultColor,
-            zIndex: plugin.zIndex + 1,
-            visible: false
-        });
-
-        // Tracks 3D world pos of touch start, dynamically calculates 2D canvas pos
-        this._touchStartMarker = new Marker(this, {
-            id: "distanceMeasurementMarker"
-        });
-
-        // Routes 2D canvas pos from Marker to Dot
-        this._touchStartMarker.on("canvasPos", (canvasPos) => {
-            this._touchStartDot.setPos(canvasPos[0], canvasPos[1]);
-        });
-
-        // Event handles from CameraControl
-        this._onMouseHoverSurface = null;
-        this._onMouseHoverOff = null;
-        this._onPickedNothing = null;
-
-        // Event handles from Scene.input
+        this._onCameraControlHoverSnapOrSurface = null;
+        this._onCameraControlHoverSnapOrSurfaceOff = null;
         this._onInputMouseDown = null;
         this._onInputMouseUp = null;
 
         // Event handles from Canvas element
         this._onCanvasTouchStart = null;
         this._onCanvasTouchEnd = null;
+
+        this._mobileModeLongPressTimeMs = 500;
+
+        this._snapEdge = cfg.snapEdge !== false;
+        this._snapVertex = cfg.snapVertex !== false;
     }
 
     /** Gets if this DistanceMeasurementsControl is currently active, where it is responding to input.
@@ -100,8 +87,43 @@ class DistanceMeasurementsControl extends Component {
     }
 
     /**
+     * Sets whether snap-to-vertex is enabled for this DistanceMeasurementsControl.
+     * This is `true` by default.
+     * @param snapVertex
+     */
+    set snapVertex(snapVertex) {
+        this._snapVertex = snapVertex;
+    }
+
+    /**
+     * Gets whether snap-to-vertex is enabled for this DistanceMeasurementsControl.
+     * This is `true` by default.
+     * @returns {*}
+     */
+    get snapVertex() {
+        return this._snapVertex;
+    }
+
+    /**
+     * Sets whether snap-to-edge is enabled for this DistanceMeasurementsControl.
+     * This is `true` by default.
+     * @param snapEdge
+     */
+    set snapEdge(snapEdge) {
+        this._snapEdge = snapEdge;
+    }
+
+    /**
+     * Gets whether snap-to-edge is enabled for this DistanceMeasurementsControl.
+     * This is `true` by default.
+     * @returns {*}
+     */
+    get snapEdge() {
+        return this._snapEdge;
+    }
+
+    /**
      * Activates this DistanceMeasurementsControl, ready to respond to input.
-     *
      */
     activate() {
 
@@ -114,176 +136,779 @@ class DistanceMeasurementsControl extends Component {
         const cameraControl = plugin.viewer.cameraControl;
         const canvas = scene.canvas.canvas;
         const input = scene.input;
-        const startDot = this._touchStartDot;
 
-        const pickSurfacePrecisionEnabled = scene.pickSurfacePrecisionEnabled;
+        const pointerLens = plugin.pointerLens;
 
         let mouseHovering = false;
-        const mouseWorldPos = math.vec3();
-        const mouseCanvasPos = math.vec2();
+        const pointerWorldPos = math.vec3();
+        const pointerCanvasPos = math.vec2();
 
-        let mouseDownCanvasX;
-        let mouseDownCanvasY;
+        let pointerDownCanvasX;
+        let pointerDownCanvasY;
 
-        const mouseCanvasClickTolerance = 5;
+        const clickTolerance = 20;
 
-        const FIRST_TOUCH_EXPECTED = 0;
-        const SECOND_TOUCH_EXPECTED = 1;
-        let touchState = FIRST_TOUCH_EXPECTED;
-        const touchCanvasClickTolerance = 5;
+        const MOUSE_FIRST_CLICK_EXPECTED = 0;
+        const MOUSE_SECOND_CLICK_EXPECTED = 1;
 
-        const touchStartCanvasPos = math.vec2();
-        const touchEndCanvasPos = math.vec2();
-        const touchStartWorldPos = math.vec3();
+        this._mouseState = MOUSE_FIRST_CLICK_EXPECTED;
 
-        this._onMouseHoverSurface = cameraControl.on("hoverSnapOrSurface", event => { // This gets fired for both mouse and touch input, but we don't care when handling touch
-            mouseHovering = true;
-            mouseWorldPos.set(event.worldPos);
-            mouseCanvasPos.set(event.canvasPos);
-            if (touchState === FIRST_TOUCH_EXPECTED) {
-                this.markerDiv.style.marginLeft = `${event.canvasPos[0] - 5}px`;
-                this.markerDiv.style.marginTop = `${event.canvasPos[1] - 5}px`;
-                this.markerDiv.style.background = "pink";
-                if (event.snappedToVertex || event.snappedToEdge) {
-                    this.markerDiv.style.background = "greenyellow";
-                    this.markerDiv.style.border ="2px solid green";
-                } else {
+        //----------------------------------------------------------------------------------------------------
+        // Mouse input
+        //----------------------------------------------------------------------------------------------------
+
+        {
+
+            this._onCameraControlHoverSnapOrSurface = cameraControl.on("hoverSnapOrSurface", event => {
+                mouseHovering = true;
+                pointerWorldPos.set(event.worldPos);
+                pointerCanvasPos.set(event.canvasPos);
+                if (this._mouseState === MOUSE_FIRST_CLICK_EXPECTED) {
+                    this.markerDiv.style.marginLeft = `${event.canvasPos[0] - 5}px`;
+                    this.markerDiv.style.marginTop = `${event.canvasPos[1] - 5}px`;
                     this.markerDiv.style.background = "pink";
-                    this.markerDiv.style.border = "2px solid red";
-                }
-
-            } else  {
-                this.markerDiv.style.marginLeft = `-10000px`;
-                this.markerDiv.style.marginTop = `-10000px`;
-            }
-            canvas.style.cursor = "pointer";
-            if (this._currentDistanceMeasurementByMouse) {
-                this._currentDistanceMeasurementByMouse.wireVisible = this._currentDistanceMeasurementByMouseInittouchState.wireVisible;
-                this._currentDistanceMeasurementByMouse.axisVisible = this._currentDistanceMeasurementByMouseInittouchState.axisVisible && this.plugin.defaultAxisVisible;
-                this._currentDistanceMeasurementByMouse.xAxisVisible = this._currentDistanceMeasurementByMouseInittouchState.xAxisVisible && this.plugin.defaultXAxisVisible;
-                this._currentDistanceMeasurementByMouse.yAxisVisible = this._currentDistanceMeasurementByMouseInittouchState.yAxisVisible && this.plugin.defaultYAxisVisible;
-                this._currentDistanceMeasurementByMouse.zAxisVisible = this._currentDistanceMeasurementByMouseInittouchState.zAxisVisible && this.plugin.defaultZAxisVisible;
-                this._currentDistanceMeasurementByMouse.targetVisible = this._currentDistanceMeasurementByMouseInittouchState.targetVisible;
-                this._currentDistanceMeasurementByMouse.target.worldPos = mouseWorldPos;
-                this.markerDiv.style.marginLeft = `-10000px`;
-                this.markerDiv.style.marginTop = `-10000px`;
-            }
-        });
-
-        this._onInputMouseDown = input.on("mousedown", (coords) => {
-            mouseDownCanvasX = coords[0];
-            mouseDownCanvasY = coords[1];
-        });
-
-        this._onInputMouseUp = input.on("mouseup", (coords) => {
-            if (coords[0] > mouseDownCanvasX + mouseCanvasClickTolerance ||
-                coords[0] < mouseDownCanvasX - mouseCanvasClickTolerance ||
-                coords[1] > mouseDownCanvasY + mouseCanvasClickTolerance ||
-                coords[1] < mouseDownCanvasY - mouseCanvasClickTolerance) {
-                return;
-            }
-            if (this._currentDistanceMeasurementByMouse) {
-                if (mouseHovering) {
-                    this._currentDistanceMeasurementByMouse.clickable = true;
-                    this.fire("measurementEnd", this._currentDistanceMeasurementByMouse);
-                    this._currentDistanceMeasurementByMouse = null;
-                } else {
-                    this._currentDistanceMeasurementByMouse.destroy();
-                    this.fire("measurementCancel", this._currentDistanceMeasurementByMouse);
-                    this._currentDistanceMeasurementByMouse = null;
-                }
-            } else {
-                if (mouseHovering) {
-                    this._currentDistanceMeasurementByMouse = plugin.createMeasurement({
-                        id: math.createUUID(),
-                        origin: {
-                            worldPos: mouseWorldPos.slice()
-                        },
-                        target: {
-                            worldPos: mouseWorldPos.slice()
-                        },
-                        approximate: true
-                    });
-                    this._currentDistanceMeasurementByMouseInittouchState.axisVisible = this._currentDistanceMeasurementByMouse.axisVisible && this.plugin.defaultAxisVisible;
-                    this._currentDistanceMeasurementByMouseInittouchState.xAxisVisible = this._currentDistanceMeasurementByMouse.xAxisVisible && this.plugin.defaultXAxisVisible;
-                    this._currentDistanceMeasurementByMouseInittouchState.yAxisVisible = this._currentDistanceMeasurementByMouse.yAxisVisible && this.plugin.defaultYAxisVisible;
-                    this._currentDistanceMeasurementByMouseInittouchState.zAxisVisible = this._currentDistanceMeasurementByMouse.zAxisVisible && this.plugin.defaultZAxisVisible;
-                    this._currentDistanceMeasurementByMouseInittouchState.wireVisible = this._currentDistanceMeasurementByMouse.wireVisible;
-                    this._currentDistanceMeasurementByMouseInittouchState.targetVisible = this._currentDistanceMeasurementByMouse.targetVisible;
-                    this._currentDistanceMeasurementByMouse.clickable = false;
-                    this.fire("measurementStart", this._currentDistanceMeasurementByMouse);
-                }
-            }
-        });
-
-        this._onMouseHoverOff = cameraControl.on("hoverSnapOrSurfaceOff", event => {
-            mouseHovering = false;
-            this.markerDiv.style.marginLeft = `-100px`;
-            this.markerDiv.style.marginTop = `-100px`;
-            if (this._currentDistanceMeasurementByMouse) {
-                this._currentDistanceMeasurementByMouse.wireVisible = false;
-                this._currentDistanceMeasurementByMouse.targetVisible = false;
-                this._currentDistanceMeasurementByMouse.axisVisible = false;
-            }
-            canvas.style.cursor = "default";
-        });
-
-        canvas.addEventListener("touchstart", this._onCanvasTouchStart = (event) => {
-            const touches = event.touches;
-            const changedTouches = event.changedTouches;
-            if (touches.length === 1 && changedTouches.length === 1) {
-                getCanvasPosFromEvent(touches[0], touchStartCanvasPos);
-            }
-        }, {passive: true});
-
-        canvas.addEventListener("touchend", this._onCanvasTouchEnd = (event) => {
-            const touches = event.touches;
-            const changedTouches = event.changedTouches;
-            if (touches.length === 0 && changedTouches.length === 1) {
-                getCanvasPosFromEvent(changedTouches[0], touchEndCanvasPos);
-                if (touchEndCanvasPos[0] > touchStartCanvasPos[0] + touchCanvasClickTolerance ||
-                    touchEndCanvasPos[0] < touchStartCanvasPos[0] - touchCanvasClickTolerance ||
-                    touchEndCanvasPos[1] > touchStartCanvasPos[1] + touchCanvasClickTolerance ||
-                    touchEndCanvasPos[1] < touchStartCanvasPos[1] - touchCanvasClickTolerance) {
-                    return; // User is repositioning the camera or model
-                }
-                const pickResult = scene.pick({
-                    canvasPos: touchEndCanvasPos,
-                    pickSurface: true
-                });
-                if (pickResult && pickResult.worldPos) {
-                    switch (touchState) {
-                        case FIRST_TOUCH_EXPECTED:
-                            startDot.setVisible(true);
-                            this._touchStartMarker.worldPos = pickResult.worldPos;
-                            touchStartWorldPos.set(pickResult.worldPos);
-                            touchState = SECOND_TOUCH_EXPECTED;
-                            break;
-                        case SECOND_TOUCH_EXPECTED:
-                            startDot.setVisible(false);
-                            this._touchStartMarker.worldPos = pickResult.worldPos;
-                            const measurement = plugin.createMeasurement({
-                                id: math.createUUID(),
-                                origin: {
-                                    worldPos: touchStartWorldPos
-                                },
-                                target: {
-                                    worldPos: pickResult.worldPos
-                                },
-                                approximate: (!pickSurfacePrecisionEnabled)
-                            });
-                            measurement.clickable = true;
-                            touchState = FIRST_TOUCH_EXPECTED;
-                            this.fire("measurementEnd", measurement);
-                            break;
+                    if (event.snappedToVertex || event.snappedToEdge) {
+                        if (pointerLens) {
+                            pointerLens.visible = true;
+                            pointerLens.centerPos = event.cursorPos || event.canvasPos;
+                            pointerLens.cursorPos = event.canvasPos;
+                        }
+                        this.markerDiv.style.background = "greenyellow";
+                        this.markerDiv.style.border = "2px solid green";
+                    } else {
+                        if (pointerLens) {
+                            pointerLens.visible = true;
+                            pointerLens.centerPos = event.cursorPos || event.canvasPos;
+                            pointerLens.cursorPos = event.canvasPos;
+                        }
+                        this.markerDiv.style.background = "pink";
+                        this.markerDiv.style.border = "2px solid red";
                     }
                 } else {
-                    startDot.setVisible(false);
-                    touchState = FIRST_TOUCH_EXPECTED;
+                    this.markerDiv.style.marginLeft = `-10000px`;
+                    this.markerDiv.style.marginTop = `-10000px`;
+                }
+                canvas.style.cursor = "pointer";
+                if (this._currentDistanceMeasurement) {
+                    this._currentDistanceMeasurement.wireVisible = this._currentDistanceMeasurementInitState.wireVisible;
+                    this._currentDistanceMeasurement.axisVisible = this._currentDistanceMeasurementInitState.axisVisible && this.plugin.defaultAxisVisible;
+                    this._currentDistanceMeasurement.xAxisVisible = this._currentDistanceMeasurementInitState.xAxisVisible && this.plugin.defaultXAxisVisible;
+                    this._currentDistanceMeasurement.yAxisVisible = this._currentDistanceMeasurementInitState.yAxisVisible && this.plugin.defaultYAxisVisible;
+                    this._currentDistanceMeasurement.zAxisVisible = this._currentDistanceMeasurementInitState.zAxisVisible && this.plugin.defaultZAxisVisible;
+                    this._currentDistanceMeasurement.targetVisible = this._currentDistanceMeasurementInitState.targetVisible;
+                    this._currentDistanceMeasurement.target.worldPos = pointerWorldPos.slice();
+                    this.markerDiv.style.marginLeft = `-10000px`;
+                    this.markerDiv.style.marginTop = `-10000px`;
+                }
+            });
+
+            this._onInputMouseDown = input.on("mousedown", (coords) => {
+                pointerDownCanvasX = coords[0];
+                pointerDownCanvasY = coords[1];
+            });
+
+            this._onInputMouseUp = input.on("mouseup", (coords) => {
+                if (coords[0] > pointerDownCanvasX + clickTolerance ||
+                    coords[0] < pointerDownCanvasX - clickTolerance ||
+                    coords[1] > pointerDownCanvasY + clickTolerance ||
+                    coords[1] < pointerDownCanvasY - clickTolerance) {
+                    return;
+                }
+                if (this._currentDistanceMeasurement) {
+                    if (mouseHovering) {
+                        this._currentDistanceMeasurement.clickable = true;
+                        this.fire("measurementEnd", this._currentDistanceMeasurement);
+                        this._currentDistanceMeasurement = null;
+                    } else {
+                        this._currentDistanceMeasurement.destroy();
+                        this.fire("measurementCancel", this._currentDistanceMeasurement);
+                        this._currentDistanceMeasurement = null;
+                    }
+                } else {
+                    if (mouseHovering) {
+                        this._currentDistanceMeasurement = plugin.createMeasurement({
+                            id: math.createUUID(),
+                            origin: {
+                                worldPos: pointerWorldPos.slice()
+                            },
+                            target: {
+                                worldPos: pointerWorldPos.slice()
+                            },
+                            approximate: true
+                        });
+                        this._currentDistanceMeasurementInitState.axisVisible = this._currentDistanceMeasurement.axisVisible && this.plugin.defaultAxisVisible;
+                        this._currentDistanceMeasurementInitState.xAxisVisible = this._currentDistanceMeasurement.xAxisVisible && this.plugin.defaultXAxisVisible;
+                        this._currentDistanceMeasurementInitState.yAxisVisible = this._currentDistanceMeasurement.yAxisVisible && this.plugin.defaultYAxisVisible;
+                        this._currentDistanceMeasurementInitState.zAxisVisible = this._currentDistanceMeasurement.zAxisVisible && this.plugin.defaultZAxisVisible;
+                        this._currentDistanceMeasurementInitState.wireVisible = this._currentDistanceMeasurement.wireVisible;
+                        this._currentDistanceMeasurementInitState.targetVisible = this._currentDistanceMeasurement.targetVisible;
+                        this._currentDistanceMeasurement.clickable = false;
+                        this.fire("measurementStart", this._currentDistanceMeasurement);
+                    }
+                }
+            });
+
+            this._onCameraControlHoverSnapOrSurfaceOff = cameraControl.on("hoverSnapOrSurfaceOff", event => {
+                if (pointerLens) {
+                    pointerLens.visible = true;
+                    pointerLens.centerPos = event.cursorPos || event.canvasPos;
+                    pointerLens.cursorPos = event.canvasPos;
+                }
+                mouseHovering = false;
+                this.markerDiv.style.marginLeft = `-100px`;
+                this.markerDiv.style.marginTop = `-100px`;
+                if (this._currentDistanceMeasurement) {
+                    this._currentDistanceMeasurement.wireVisible = false;
+                    this._currentDistanceMeasurement.targetVisible = false;
+                    this._currentDistanceMeasurement.axisVisible = false;
+                }
+                canvas.style.cursor = "default";
+            });
+        }
+
+        //----------------------------------------------------------------------------------------------------
+        // Touch input always assumes mobile devices
+        //----------------------------------------------------------------------------------------------------
+
+        {
+            let longTouchTimeout = null;
+
+            const disableCameraMouseControl = () => {
+                this.plugin.viewer.cameraControl.active = false;
+            }
+
+            const enableCameraMouseControl = () => {
+                this.plugin.viewer.cameraControl.active = true;
+            }
+
+            const scheduleSurfacePickIfNeeded = () => {
+                if (!this.plugin.viewer.cameraControl._handlers[2]._active) {
+                    this.plugin.viewer.cameraControl._controllers.pickController.schedulePickSurface = true;
+                    this.plugin.viewer.cameraControl._controllers.pickController.update();
                 }
             }
-            //  event.stopPropagation();
-        }, {passive: true});
+
+            this._mouseState = TOUCH_FINDING_ORIGIN;
+
+            const touchStartCanvasPos = math.vec2();
+            const touchMoveCanvasPos = math.vec2();
+            const touchEndCanvasPos = math.vec2();
+
+            canvas.addEventListener("touchstart", this._onCanvasTouchStart = (event) => {
+
+                const currentNumTouches = event.touches.length;
+
+                if (currentNumTouches !== 1) {
+                    return;
+                }
+
+                const touchX = event.touches[0].clientX;
+                const touchY = event.touches[0].clientY;
+
+                touchStartCanvasPos.set([touchX, touchY]);
+                touchMoveCanvasPos.set([touchX, touchY]);
+
+                switch (this._mouseState) {
+
+                    case TOUCH_FINDING_ORIGIN:
+                        if (currentNumTouches !== 1 && longTouchTimeout !== null) { // Two or more fingers down
+                            clearTimeout(longTouchTimeout);
+                            longTouchTimeout = null;
+                            this._mouseState = TOUCH_CANCELING;
+                            // console.log("touchstart: this._mouseState= TOUCH_FINDING_ORIGIN -> TOUCH_CANCELING")
+                            return;
+                        }
+                        if (currentNumTouches === 1) { // One finger down
+                            longTouchTimeout = setTimeout(() => {
+                                longTouchTimeout = null;
+                                if (currentNumTouches !== 1 ||
+                                    touchMoveCanvasPos[0] > touchStartCanvasPos[0] + clickTolerance ||
+                                    touchMoveCanvasPos[0] < touchStartCanvasPos[0] - clickTolerance ||
+                                    touchMoveCanvasPos[1] > touchStartCanvasPos[1] + clickTolerance ||
+                                    touchMoveCanvasPos[1] < touchStartCanvasPos[1] - clickTolerance) {
+                                    return;   // Has moved
+                                }
+                                // Long touch
+                                disableCameraMouseControl();
+                                if (pointerLens) {
+                                    pointerLens.visible = true;
+                                    pointerLens.centerPos = touchStartCanvasPos;
+                                    pointerLens.cursorPos = touchStartCanvasPos;
+                                }
+                                if (pointerLens) {
+                                    pointerLens.centerPos = touchMoveCanvasPos;
+                                }
+                                const snapPickResult = scene.snapPick({
+                                    canvasPos: touchMoveCanvasPos,
+                                    snapVertex: this._snapVertex,
+                                    snapEdge: this._snapEdge,
+                                });
+                                if (snapPickResult && snapPickResult.snappedWorldPos) {
+                                    if (pointerLens) {
+                                        pointerLens.cursorPos = snapPickResult.snappedCanvasPos;
+                                    }
+                                    pointerWorldPos.set(snapPickResult.snappedWorldPos);
+                                    if (!this._currentDistanceMeasurement) {
+                                        this._currentDistanceMeasurement = plugin.createMeasurement({
+                                            id: math.createUUID(),
+                                            origin: {
+                                                worldPos: snapPickResult.snappedWorldPos
+                                            },
+                                            target: {
+                                                worldPos: snapPickResult.snappedWorldPos
+                                            }
+                                        });
+                                        this._currentDistanceMeasurement.labelsVisible = false;
+                                        this._currentDistanceMeasurement.xAxisVisible = false;
+                                        this._currentDistanceMeasurement.yAxisVisible = false;
+                                        this._currentDistanceMeasurement.zAxisVisible = false;
+                                        this._currentDistanceMeasurement.wireVisible = false;
+                                        this._currentDistanceMeasurement.originVisible = true;
+                                        this._currentDistanceMeasurement.targetVisible = false;
+                                        this._currentDistanceMeasurement.clickable = false;
+                                    } else {
+                                        this._currentDistanceMeasurement.origin.worldPos = snapPickResult.snappedWorldPos;
+                                    }
+                                    this.fire("measurementStart", this._currentDistanceMeasurement);
+                                } else {
+                                    const pickResult = scene.pick({
+                                        canvasPos: touchMoveCanvasPos,
+                                        pickSurface: true
+                                    })
+                                    if (pickResult && pickResult.worldPos) {
+                                        if (pointerLens) {
+                                            pointerLens.cursorPos = pickResult.canvasPos;
+                                        }
+                                        pointerWorldPos.set(pickResult.worldPos);
+                                        if (!this._currentDistanceMeasurement) {
+                                            this._currentDistanceMeasurement = plugin.createMeasurement({
+                                                id: math.createUUID(),
+                                                origin: {
+                                                    worldPos: pickResult.worldPos
+                                                },
+                                                target: {
+                                                    worldPos: pickResult.worldPos
+                                                }
+                                            });
+                                            this._currentDistanceMeasurement.labelsVisible = false;
+                                            this._currentDistanceMeasurement.xAxisVisible = false;
+                                            this._currentDistanceMeasurement.yAxisVisible = false;
+                                            this._currentDistanceMeasurement.zAxisVisible = false;
+                                            this._currentDistanceMeasurement.wireVisible = false;
+                                            this._currentDistanceMeasurement.originVisible = true;
+                                            this._currentDistanceMeasurement.targetVisible = false;
+                                            this._currentDistanceMeasurement.clickable = false;
+                                        } else {
+                                            this._currentDistanceMeasurement.origin.worldPos = pickResult.worldPos;
+                                        }
+
+                                        this.fire("measurementStart", this._currentDistanceMeasurement);
+                                    } else {
+                                        if (pointerLens) {
+                                            pointerLens.cursorPos = null;
+                                        }
+                                    }
+                                }
+                                this._mouseState = LONG_TOUCH_FINDING_START;
+                                // console.log("touchstart: this._mouseState= TOUCH_FINDING_ORIGIN -> LONG_TOUCH_FINDING_START")
+                            }, this._mobileModeLongPressTimeMs);
+                            this._mouseState = QUICK_TOUCH_FINDING_START;
+                            // console.log("touchstart: this._mouseState= TOUCH_FINDING_ORIGIN -> QUICK_TOUCH_FINDING_START")
+                        }
+                        break;
+
+                    case TOUCH_FINDING_TARGET:
+                        if (currentNumTouches !== 1 && longTouchTimeout !== null) { // Two or more fingers down
+                            clearTimeout(longTouchTimeout);
+                            longTouchTimeout = null;
+                            return;
+                        }
+                        if (currentNumTouches === 1) { // One finger down
+                            longTouchTimeout = setTimeout(() => {
+                                longTouchTimeout = null;
+                                if (currentNumTouches !== 1 ||
+                                    touchMoveCanvasPos[0] > touchStartCanvasPos[0] + clickTolerance ||
+                                    touchMoveCanvasPos[0] < touchStartCanvasPos[0] - clickTolerance ||
+                                    touchMoveCanvasPos[1] > touchStartCanvasPos[1] + clickTolerance ||
+                                    touchMoveCanvasPos[1] < touchStartCanvasPos[1] - clickTolerance) {
+                                    // Has moved
+                                    return;
+                                }
+                                // Long touch
+                                disableCameraMouseControl();
+                                if (pointerLens) {
+                                    pointerLens.visible = true;
+                                    pointerLens.centerPos = touchStartCanvasPos;
+                                }
+
+                                const snapPickResult = scene.snapPick({
+                                    canvasPos: touchMoveCanvasPos,
+                                    snapVertex: this._snapVertex,
+                                    snapEdge: this._snapEdge,
+                                });
+                                if (snapPickResult && snapPickResult.snappedWorldPos) {
+                                    if (pointerLens) {
+                                        pointerLens.cursorPos = snapPickResult.snappedCanvasPos;
+                                    }
+                                    pointerWorldPos.set(snapPickResult.snappedWorldPos);
+                                    this._currentDistanceMeasurement.target.worldPos = snapPickResult.snappedWorldPos;
+                                    this._currentDistanceMeasurement.targetVisible = true;
+                                    this._currentDistanceMeasurement.wireVisible = true;
+                                    this._currentDistanceMeasurement.labelsVisible = true;
+                                    this.fire("measurementStart", this._currentDistanceMeasurement);
+                                } else {
+                                    const pickResult = scene.pick({
+                                        canvasPos: touchMoveCanvasPos,
+                                        pickSurface: true
+                                    })
+                                    if (pickResult && pickResult.worldPos) {
+                                        if (pointerLens) {
+                                            pointerLens.cursorPos = pickResult.canvasPos;
+                                        }
+                                        pointerWorldPos.set(pickResult.worldPos);
+                                        this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                                        this._currentDistanceMeasurement.targetVisible = true;
+                                        this._currentDistanceMeasurement.wireVisible = true;
+                                        this._currentDistanceMeasurement.labelsVisible = true;
+                                        this.fire("measurementStart", this._currentDistanceMeasurement);
+                                    } else {
+                                        if (pointerLens) {
+                                            pointerLens.cursorPos = null;
+                                        }
+                                    }
+                                }
+                                this._mouseState = LONG_TOUCH_FINDING_END;
+                                // console.log("touchstart: this._mouseState= TOUCH_FINDING_TARGET -> LONG_TOUCH_FINDING_END")
+                            }, this._mobileModeLongPressTimeMs);
+                            this._mouseState = QUICK_TOUCH_FINDING_END;
+                            // console.log("touchstart: this._mouseState= TOUCH_FINDING_TARGET -> QUICK_TOUCH_FINDING_END")
+                        }
+                        break;
+
+                    default:
+                        if (longTouchTimeout !== null) {
+                            clearTimeout(longTouchTimeout);
+                            longTouchTimeout = null;
+                        }
+                        enableCameraMouseControl();
+                        this._mouseState = TOUCH_CANCELING;
+                        // console.log("touchstart: this._mouseState= default -> TOUCH_CANCELING")
+
+                        return;
+                }
+
+            }, {passive: true});
+
+
+            canvas.addEventListener("touchmove", (event) => {
+
+                const currentNumTouches = event.touches.length;
+
+                if (currentNumTouches !== 1) {
+                    return;
+                }
+
+                const touchX = event.touches[0].clientX;
+                const touchY = event.touches[0].clientY;
+
+                touchMoveCanvasPos.set([touchX, touchY]);
+
+                let snapPickResult;
+                let pickResult;
+
+                switch (this._mouseState) {
+
+                    case TOUCH_CANCELING:
+                        break;
+
+                    case TOUCH_FINDING_ORIGIN:
+                        this._mouseState = TOUCH_FINDING_ORIGIN;
+                        // console.log("touchmove: this._mouseState= TOUCH_FINDING_ORIGIN -> TOUCH_FINDING_ORIGIN")
+                        break;
+
+                    case QUICK_TOUCH_FINDING_START:
+                        this._mouseState = QUICK_TOUCH_FINDING_START;
+                        // console.log("touchmove: this._mouseState= QUICK_TOUCH_FINDING_START -> QUICK_TOUCH_FINDING_START")
+                        break;
+
+                    case LONG_TOUCH_FINDING_START:
+                        if (pointerLens) {
+                            pointerLens.centerPos = touchMoveCanvasPos;
+                        }
+                        snapPickResult = scene.snapPick({
+                            canvasPos: touchMoveCanvasPos,
+                            snapVertex: this._snapVertex,
+                            snapEdge: this._snapEdge,
+                        });
+                        if (snapPickResult && snapPickResult.snappedWorldPos) {
+                            if (pointerLens) {
+                                pointerLens.cursorPos = snapPickResult.snappedCanvasPos;
+                            }
+                            pointerWorldPos.set(snapPickResult.snappedWorldPos);
+                            if (!this._currentDistanceMeasurement) {
+                                this._currentDistanceMeasurement = plugin.createMeasurement({
+                                    id: math.createUUID(),
+                                    origin: {
+                                        worldPos: snapPickResult.snappedWorldPos
+                                    },
+                                    target: {
+                                        worldPos: snapPickResult.snappedWorldPos
+                                    }
+                                });
+                                this._currentDistanceMeasurement.labelsVisible = false;
+                                this._currentDistanceMeasurement.xAxisVisible = false;
+                                this._currentDistanceMeasurement.yAxisVisible = false;
+                                this._currentDistanceMeasurement.zAxisVisible = false;
+                                this._currentDistanceMeasurement.wireVisible = false;
+                                this._currentDistanceMeasurement.originVisible = true;
+                                this._currentDistanceMeasurement.targetVisible = false;
+                                this._currentDistanceMeasurement.clickable = false;
+                            } else {
+                                this._currentDistanceMeasurement.origin.worldPos = snapPickResult.snappedWorldPos;
+                            }
+
+                            this.fire("measurementStart", this._currentDistanceMeasurement);
+                        } else {
+                            pickResult = scene.pick({
+                                canvasPos: touchMoveCanvasPos,
+                                pickSurface: true
+                            })
+                            if (pickResult && pickResult.worldPos) {
+                                if (pointerLens) {
+                                    pointerLens.cursorPos = pickResult.canvasPos;
+                                }
+                                pointerWorldPos.set(pickResult.worldPos);
+                                if (!this._currentDistanceMeasurement) {
+                                    this._currentDistanceMeasurement = plugin.createMeasurement({
+                                        id: math.createUUID(),
+                                        origin: {
+                                            worldPos: pickResult.worldPos
+                                        },
+                                        target: {
+                                            worldPos: pickResult.worldPos
+                                        }
+                                    });
+                                    this._currentDistanceMeasurement.labelsVisible = false;
+                                    this._currentDistanceMeasurement.xAxisVisible = false;
+                                    this._currentDistanceMeasurement.yAxisVisible = false;
+                                    this._currentDistanceMeasurement.zAxisVisible = false;
+                                    this._currentDistanceMeasurement.wireVisible = false;
+                                    this._currentDistanceMeasurement.originVisible = true;
+                                    this._currentDistanceMeasurement.targetVisible = false;
+                                    this._currentDistanceMeasurement.clickable = false;
+                                } else {
+                                    this._currentDistanceMeasurement.origin.worldPos = pickResult.worldPos;
+                                }
+
+                                this.fire("measurementStart", this._currentDistanceMeasurement);
+                            } else {
+                                if (pointerLens) {
+                                    pointerLens.cursorPos = null;
+                                }
+                            }
+                        }
+                        this._mouseState = LONG_TOUCH_FINDING_START;
+                        // console.log("touchmove: this._mouseState= LONG_TOUCH_FINDING_START -> LONG_TOUCH_FINDING_START")
+                        break;
+
+                    case TOUCH_FINDING_TARGET:
+                        this._mouseState = TOUCH_FINDING_TARGET;
+                        // console.log("touchmove: this._mouseState= TOUCH_FINDING_TARGET -> TOUCH_FINDING_TARGET")
+                        break;
+
+                    case QUICK_TOUCH_FINDING_END:
+                        this._mouseState = TOUCH_FINDING_TARGET;
+                        // console.log("touchmove: this._mouseState= QUICK_TOUCH_FINDING_END -> QUICK_TOUCH_FINDING_END")
+                        break;
+
+                    case LONG_TOUCH_FINDING_END:
+                        if (currentNumTouches !== 1 && longTouchTimeout !== null) { // Two or more fingers down
+                            clearTimeout(longTouchTimeout);
+                            longTouchTimeout = null;
+                            if (pointerLens) {
+                                pointerLens.visible = false;
+                            }
+                            enableCameraMouseControl();
+                            this._mouseState = TOUCH_CANCELING;
+                            // console.log("touchmove: this._mouseState= QUICK_TOUCH_FINDING_END -> TOUCH_CANCELING")
+                            return;
+                        }
+                        if (pointerLens) {
+                            pointerLens.centerPos = touchMoveCanvasPos;
+                        }
+                        snapPickResult = scene.snapPick({
+                            canvasPos: touchMoveCanvasPos,
+                            snapVertex: this._snapVertex,
+                            snapEdge: this._snapEdge,
+                        });
+                        if (snapPickResult && snapPickResult.snappedWorldPos) {
+                            if (pointerLens) {
+                                pointerLens.cursorPos = snapPickResult.snappedCanvasPos;
+                            }
+                            this._currentDistanceMeasurement.target.worldPos = snapPickResult.snappedWorldPos;
+                            this._currentDistanceMeasurement.targetVisible = true;
+                            this._currentDistanceMeasurement.wireVisible = true;
+                            this._currentDistanceMeasurement.labelsVisible = true;
+                        } else {
+                            pickResult = scene.pick({
+                                canvasPos: touchMoveCanvasPos,
+                                pickSurface: true
+                            })
+                            if (pickResult && pickResult.worldPos) {
+                                if (pointerLens) {
+                                    pointerLens.cursorPos = pickResult.canvasPos;
+                                }
+                                this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                                this._currentDistanceMeasurement.targetVisible = true;
+                                this._currentDistanceMeasurement.wireVisible = true;
+                                this._currentDistanceMeasurement.labelsVisible = true;
+
+                            }
+                        }
+                        this._mouseState = LONG_TOUCH_FINDING_END;
+                        break;
+
+                    default:
+                        this._mouseState = TOUCH_FINDING_ORIGIN;
+                        // console.log("touchmove: this._mouseState= default -> TOUCH_FINDING_ORIGIN")
+                        break;
+                }
+
+            }, {passive: true});
+
+            canvas.addEventListener("touchend", this._onCanvasTouchEnd = (event) => {
+
+                const currentNumTouches = event.changedTouches.length;
+
+                if (currentNumTouches !== 1) {
+                    return;
+                }
+
+                enableCameraMouseControl();
+                clearTimeout(longTouchTimeout);
+                longTouchTimeout = null;
+
+                const touchX = event.changedTouches[0].clientX;
+                const touchY = event.changedTouches[0].clientY;
+
+                touchEndCanvasPos.set([touchX, touchY]);
+
+                switch (this._mouseState) {
+
+                    case TOUCH_CANCELING:
+                        this._mouseState = TOUCH_FINDING_ORIGIN;
+                        // console.log("touchend: this._mouseState= TOUCH_CANCELING -> TOUCH_FINDING_ORIGIN")
+                        break;
+
+                    case TOUCH_FINDING_ORIGIN:
+                        this._mouseState = TOUCH_FINDING_ORIGIN;
+                        // console.log("touchend: this._mouseState= TOUCH_FINDING_ORIGIN -> TOUCH_FINDING_ORIGIN")
+                        break;
+
+                    case TOUCH_FINDING_TARGET:
+                        this._mouseState = TOUCH_FINDING_TARGET;
+                        // console.log("touchend: this._mouseState= TOUCH_FINDING_TARGET -> TOUCH_FINDING_TARGET")
+                        break;
+
+                    case QUICK_TOUCH_FINDING_START:
+                        if (currentNumTouches !== 1 ||
+                            touchEndCanvasPos[0] > touchStartCanvasPos[0] + clickTolerance ||
+                            touchEndCanvasPos[0] < touchStartCanvasPos[0] - clickTolerance ||
+                            touchEndCanvasPos[1] > touchStartCanvasPos[1] + clickTolerance ||
+                            touchEndCanvasPos[1] < touchStartCanvasPos[1] - clickTolerance) {
+                            if (this._currentDistanceMeasurement) {
+                                this._currentDistanceMeasurement.destroy();
+                                this._currentDistanceMeasurement = null;
+                            }
+                            this._mouseState = TOUCH_FINDING_ORIGIN;
+                            // console.log("touchend: this._mouseState= QUICK_TOUCH_FINDING_START (pointer moved, destroy measurement) -> TOUCH_FINDING_ORIGIN")
+                            break;
+                        } else {
+                            const pickResult = scene.pick({
+                                canvasPos: touchEndCanvasPos,
+                                pickSurface: true
+                            })
+                            if (pickResult && pickResult.worldPos) {
+                                if (pointerLens) {
+                                    pointerLens.cursorPos = pickResult.canvasPos;
+                                }
+                                this._currentDistanceMeasurement = plugin.createMeasurement({
+                                    id: math.createUUID(),
+                                    origin: {
+                                        worldPos: pickResult.worldPos
+                                    },
+                                    target: {
+                                        worldPos: pickResult.worldPos
+                                    }
+                                });
+                                this._currentDistanceMeasurement.labelsVisible = false;
+                                this._currentDistanceMeasurement.xAxisVisible = false;
+                                this._currentDistanceMeasurement.yAxisVisible = false;
+                                this._currentDistanceMeasurement.zAxisVisible = false;
+                                this._currentDistanceMeasurement.originVisible = true;
+                                this._currentDistanceMeasurement.targetVisible = false;
+                                this._currentDistanceMeasurement.clickable = false;
+                                this._currentDistanceMeasurement.wireVisible = false;
+                                this.fire("measurementStart", this._currentDistanceMeasurement);
+                                //      enableCameraMouseControl();
+                                this._mouseState = TOUCH_FINDING_TARGET;
+                                // console.log("touchend: this._mouseState= QUICK_TOUCH_FINDING_START (picked, begin measurement) -> TOUCH_FINDING_TARGET")
+                                break;
+                            } else {
+                                if (this._currentDistanceMeasurement) { // Not likely needed, but safe
+                                    this._currentDistanceMeasurement.destroy();
+                                    this._currentDistanceMeasurement = null;
+                                }
+                                this._mouseState = TOUCH_FINDING_ORIGIN;
+                                // console.log("touchend: this._mouseState= QUICK_TOUCH_FINDING_START (nothing picked)  -> TOUCH_FINDING_ORIGIN")
+                                break;
+                            }
+                        }
+
+                    case LONG_TOUCH_FINDING_START:
+                        if (pointerLens) {
+                            pointerLens.visible = false;
+                        }
+                        if (!this._currentDistanceMeasurement) {
+                            this._currentDistanceMeasurement = plugin.createMeasurement({
+                                id: math.createUUID(),
+                                origin: {
+                                    worldPos: touchEndCanvasPos
+                                },
+                                target: {
+                                    worldPos: touchEndCanvasPos
+                                }
+                            });
+                            this._currentDistanceMeasurement.labelsVisible = false;
+                            this._currentDistanceMeasurement.xAxisVisible = false;
+                            this._currentDistanceMeasurement.yAxisVisible = false;
+                            this._currentDistanceMeasurement.zAxisVisible = false;
+                            this._currentDistanceMeasurement.wireVisible = false;
+                            this._currentDistanceMeasurement.originVisible = true;
+                            this._currentDistanceMeasurement.targetVisible = false;
+                            this._currentDistanceMeasurement.clickable = false;
+                        }
+                        this.fire("measurementStart", this._currentDistanceMeasurement);
+                        //  enableCameraMouseControl();
+                        this._mouseState = TOUCH_FINDING_TARGET;
+                        // console.log("touchend: this._mouseState= LONG_TOUCH_FINDING_START (picked, begin measurement) -> TOUCH_FINDING_TARGET")
+                        break;
+
+                    case QUICK_TOUCH_FINDING_END:
+                        if (currentNumTouches !== 1 ||
+                            touchEndCanvasPos[0] > touchStartCanvasPos[0] + clickTolerance ||
+                            touchEndCanvasPos[0] < touchStartCanvasPos[0] - clickTolerance ||
+                            touchEndCanvasPos[1] > touchStartCanvasPos[1] + clickTolerance ||
+                            touchEndCanvasPos[1] < touchStartCanvasPos[1] - clickTolerance) {
+                            if (this._currentDistanceMeasurement) {
+                                this._currentDistanceMeasurement.destroy();
+                                this._currentDistanceMeasurement = null;
+                            }
+                            this._mouseState = TOUCH_FINDING_TARGET;
+                            // console.log("touchend: (moved) this._mouseState= QUICK_TOUCH_FINDING_END -> TOUCH_FINDING_TARGET")
+                            break;
+                        } else {
+                            const pickResult = scene.pick({
+                                canvasPos: touchEndCanvasPos,
+                                pickSurface: true
+                            })
+                            if (pickResult && pickResult.worldPos) {
+                                if (pointerLens) {
+                                    pointerLens.cursorPos = pickResult.canvasPos;
+                                }
+                                this._currentDistanceMeasurement.xAxisVisible = false;
+                                this._currentDistanceMeasurement.yAxisVisible = false;
+                                this._currentDistanceMeasurement.zAxisVisible = false;
+                                this._currentDistanceMeasurement.wireVisible = true;
+                                this._currentDistanceMeasurement.originVisible = true;
+                                this._currentDistanceMeasurement.targetVisible = true;
+                                this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                                this._currentDistanceMeasurement.labelsVisible = true;
+                                this._currentDistanceMeasurement.clickable = false;
+                                this.fire("measurementEnd", this._currentDistanceMeasurement);
+                                this._currentDistanceMeasurement = null;
+                                this._mouseState = TOUCH_FINDING_ORIGIN;
+                                // console.log("touchend: this._mouseState= QUICK_TOUCH_FINDING_END (picked, begin measurement) -> TOUCH_FINDING_ORIGIN")
+                                break;
+                            } else {
+                                if (this._currentDistanceMeasurement) {
+                                    this._currentDistanceMeasurement.destroy();
+                                    this._currentDistanceMeasurement = null;
+                                }
+                                this._mouseState = TOUCH_FINDING_ORIGIN;
+                                // console.log("touchend: this._mouseState= QUICK_TOUCH_FINDING_START (nothing picked, destroy measurement) -> TOUCH_FINDING_ORIGIN")
+                                break;
+                            }
+                        }
+
+                    case LONG_TOUCH_FINDING_END:
+                        if (pointerLens) {
+                            pointerLens.visible = false;
+                        }
+                        const snapPickResult = scene.snapPick({
+                            canvasPos: touchEndCanvasPos,
+                            snapVertex: this._snapVertex,
+                            snapEdge: this._snapEdge,
+                        });
+                        if (snapPickResult && snapPickResult.snappedWorldPos) {
+                            if (pointerLens) {
+                                pointerLens.cursorPos = snapPickResult.snappedCanvasPos;
+                            }
+                            this._currentDistanceMeasurement.xAxisVisible = false;
+                            this._currentDistanceMeasurement.yAxisVisible = false;
+                            this._currentDistanceMeasurement.zAxisVisible = false;
+                            this._currentDistanceMeasurement.wireVisible = true;
+                            this._currentDistanceMeasurement.labelsVisible = true;
+                            this._currentDistanceMeasurement.originVisible = true;
+                            this._currentDistanceMeasurement.targetVisible = true;
+                            this._currentDistanceMeasurement.target.worldPos = snapPickResult.snappedWorldPos;
+                        } else {
+                            const pickResult = scene.pick({
+                                canvasPos: touchEndCanvasPos,
+                                pickSurface: true
+                            })
+                            if (pickResult && pickResult.worldPos) {
+                                if (pointerLens) {
+                                    pointerLens.cursorPos = pickResult.canvasPos;
+                                }
+                                this._currentDistanceMeasurement.xAxisVisible = false;
+                                this._currentDistanceMeasurement.yAxisVisible = false;
+                                this._currentDistanceMeasurement.zAxisVisible = false;
+                                this._currentDistanceMeasurement.wireVisible = true;
+                                this._currentDistanceMeasurement.labelsVisible = true;
+                                this._currentDistanceMeasurement.originVisible = true;
+                                this._currentDistanceMeasurement.targetVisible = true;
+                                this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                            } else {
+                                if (this._currentDistanceMeasurement) {
+                                    this._currentDistanceMeasurement.destroy();
+                                    this._currentDistanceMeasurement = null;
+                                }
+                                this._mouseState = TOUCH_FINDING_ORIGIN;
+                                // console.log("touchend: this._mouseState= QUICK_TOUCH_FINDING_END (nothing picked, destroy measurement) -> TOUCH_FINDING_ORIGIN")
+                                break;
+                            }
+                        }
+
+                        this._currentDistanceMeasurement.clickable = true;
+                        this.fire("measurementEnd", this._currentDistanceMeasurement);
+                        this._currentDistanceMeasurement = null;
+                        this._mouseState = TOUCH_FINDING_ORIGIN;
+                        // console.log("touchend: this._mouseState= LONG_TOUCH_FINDING_END -> TOUCH_FINDING_ORIGIN")
+                        break;
+
+                    default:
+                        if (pointerLens) {
+                            pointerLens.visible = false;
+                        }
+                        this._currentDistanceMeasurement = null;
+                        this._mouseState = TOUCH_FINDING_ORIGIN;
+                        // console.log("touchend: this._mouseState= default -> TOUCH_FINDING_ORIGIN")
+                        break;
+                }
+
+            }, {passive: true});
+        }
 
         this._active = true;
     }
@@ -299,7 +924,9 @@ class DistanceMeasurementsControl extends Component {
             return;
         }
 
-        this._touchStartDot.setVisible(false);
+        if (this.plugin.pointerLens) {
+            this.plugin.pointerLens.visible = false;
+        }
 
         this.reset();
 
@@ -308,18 +935,17 @@ class DistanceMeasurementsControl extends Component {
         input.off(this._onInputMouseUp);
 
         const cameraControl = this.plugin.viewer.cameraControl;
-        cameraControl.off(this._onMouseHoverSurface);
-        cameraControl.off(this._onMouseHoverOff);
-        cameraControl.off(this._onPickedNothing);
+        cameraControl.off(this._onCameraControlHoverSnapOrSurface);
+        cameraControl.off(this._onCameraControlHoverSnapOrSurfaceOff);
 
         const canvas = this.plugin.viewer.scene.canvas.canvas;
         canvas.removeEventListener("touchstart", this._onCanvasTouchStart);
         canvas.removeEventListener("touchend", this._onCanvasTouchEnd);
 
-        if (this._currentDistanceMeasurementByMouse) {
-            this.fire("measurementCancel", this._currentDistanceMeasurementByMouse);
-            this._currentDistanceMeasurementByMouse.destroy();
-            this._currentDistanceMeasurementByMouse = null;
+        if (this._currentDistanceMeasurement) {
+            this.fire("measurementCancel", this._currentDistanceMeasurement);
+            this._currentDistanceMeasurement.destroy();
+            this._currentDistanceMeasurement = null;
         }
 
         this._active = false;
@@ -336,10 +962,10 @@ class DistanceMeasurementsControl extends Component {
         if (!this._active) {
             return;
         }
-        if (this._currentDistanceMeasurementByMouse) {
-            this.fire("measurementCancel", this._currentDistanceMeasurementByMouse);
-            this._currentDistanceMeasurementByMouse.destroy();
-            this._currentDistanceMeasurementByMouse = null;
+        if (this._currentDistanceMeasurement) {
+            this.fire("measurementCancel", this._currentDistanceMeasurement);
+            this._currentDistanceMeasurement.destroy();
+            this._currentDistanceMeasurement = null;
         }
     }
 
@@ -347,7 +973,6 @@ class DistanceMeasurementsControl extends Component {
      * @private
      */
     destroy() {
-        this._touchStartDot.destroy();
         this.deactivate();
         super.destroy();
     }
