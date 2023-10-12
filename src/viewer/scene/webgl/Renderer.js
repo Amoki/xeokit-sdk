@@ -1270,14 +1270,14 @@ const Renderer = function (scene, options) {
     /**
      * @param {[number, number]} canvasPos
      * @param {number} [snapRadiusInPixels=30]
-     * @param {boolean} [snapVertex=true]
-     * @param {boolean} [snapEdge=true]
+     * @param {boolean} [snapToVertex=true]
+     * @param {boolean} [snapToEdge=true]
      *
      * @returns {{worldPos:number[],snappedWorldPos:null|number[],snappedCanvasPos:null|number[], snapType:null|"vertex"|"edge"}}
      */
-    this.snapPick = function (canvasPos, snapRadiusInPixels = 30, snapVertex = true, snapEdge = true) {
+    this.snapPick = function (canvasPos, snapRadiusInPixels = 30, snapToVertex = true, snapToEdge = true) {
 
-        if (!snapVertex && !snapEdge) {
+        if (!snapToVertex && !snapToEdge) {
             return this.pick({canvasPos, pickSurface: true});
         }
 
@@ -1346,7 +1346,7 @@ const Renderer = function (scene, options) {
 
         gl.depthMask(false);
 
-        if (snapVertex && snapEdge) {
+        if (snapToVertex && snapToEdge) {
             frameCtx.snapMode = "edge";
             snapPickDrawSnapDepths(frameCtx);
 
@@ -1355,7 +1355,7 @@ const Renderer = function (scene, options) {
 
             snapPickDrawSnapDepths(frameCtx);
         } else {
-            frameCtx.snapMode = snapVertex ? "vertex" : "edge";
+            frameCtx.snapMode = snapToVertex ? "vertex" : "edge";
 
             snapPickDrawSnapDepths(frameCtx);
         }
@@ -1403,7 +1403,7 @@ const Renderer = function (scene, options) {
                     x,
                     y,
                     dist,
-                    isVertex: snapVertex && snapEdge ? snapPickResultArray[i + 3] > layerParamsSnap.length / 2 : snapVertex,
+                    isVertex: snapToVertex && snapToEdge ? snapPickResultArray[i + 3] > layerParamsSnap.length / 2 : snapToVertex,
                     result: [
                         snapPickResultArray[i + 0],
                         snapPickResultArray[i + 1],
@@ -1477,20 +1477,30 @@ const Renderer = function (scene, options) {
         frameCtx.pickViewMatrix = pickViewMatrix;
         frameCtx.pickProjMatrix = pickProjMatrix;
 
+        const pickNormalBuffer = renderBufferManager.getRenderBuffer("pick-normal");
+
+        pickNormalBuffer.bind(gl.RGBA32I);
+
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-        gl.clearColor(0, 0, 0, 0);
         gl.enable(gl.DEPTH_TEST);
         gl.disable(gl.CULL_FACE);
         gl.disable(gl.BLEND);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        gl.clearBufferiv(gl.COLOR, 0, new Int32Array([0, 0, 0, 0]));
 
         pickable.drawPickNormals(frameCtx); // Draw color-encoded fragment World-space normals
 
         const resolutionScale = scene.canvas.resolutionScale;
-        const pix = pickBuffer.read(Math.round(canvasPos[0] * resolutionScale), Math.round(canvasPos[1] * resolutionScale));
+        const pix = pickNormalBuffer.read(Math.round(canvasPos[0] * resolutionScale), Math.round(canvasPos[1] * resolutionScale), gl.RGBA_INTEGER, gl.INT, Int32Array, 4);
 
-        const worldNormal = [(pix[0] / 256.0) - 0.5, (pix[1] / 256.0) - 0.5, (pix[2] / 256.0) - 0.5];
+        pickNormalBuffer.unbind();
+
+        const worldNormal = [
+            pix[0] / math.MAX_INT,
+            pix[1] / math.MAX_INT,
+            pix[2] / math.MAX_INT,
+        ];
 
         math.normalizeVec3(worldNormal);
 
