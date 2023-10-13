@@ -20,7 +20,7 @@ export class TrianglesDataTexturePickMeshRenderer {
 
     getValid() {
         return this._hash === this._getHash();
-    };
+    }
 
     _getHash() {
         return this._scene._sectionPlanesState.getHash();
@@ -81,6 +81,7 @@ export class TrianglesDataTexturePickMeshRenderer {
             rtcViewMatrix = camera.viewMatrix;
             rtcCameraEye = camera.eye;
         }
+        gl.uniform2fv(this._uPickClipPos, frameCtx.pickClipPos);
         gl.uniformMatrix4fv(this._uSceneModelWorldMatrix, false, rotationMatrixConjugate);
         gl.uniformMatrix4fv(this._uViewMatrix, false, rtcViewMatrix);
         gl.uniformMatrix4fv(this._uProjMatrix, false, camera.projMatrix);
@@ -154,6 +155,7 @@ export class TrianglesDataTexturePickMeshRenderer {
         const program = this._program;
         this._uRenderPass = program.getLocation("renderPass");
         this._uPickInvisible = program.getLocation("pickInvisible");
+        this._uPickClipPos = program.getLocation("pickClipPos");
         this._uSceneModelWorldMatrix = program.getLocation("sceneModelWorldMatrix");
         this._uViewMatrix = program.getLocation("viewMatrix");
         this._uProjMatrix = program.getLocation("projMatrix");
@@ -251,6 +253,15 @@ export class TrianglesDataTexturePickMeshRenderer {
             src.push("out float isPerspective;");
         }
 
+        src.push("uniform vec2 pickClipPos;");
+
+        src.push("vec4 remapClipPos(vec4 clipPos) {");
+        src.push("    clipPos.xy /= clipPos.w;")
+        src.push("    clipPos.xy -= pickClipPos;");
+        src.push("    clipPos.xy *= clipPos.w;")
+        src.push("    return clipPos;")
+        src.push("}");
+
         src.push("bool isPerspectiveMatrix(mat4 m) {");
         src.push("    return (m[2][3] == - 1.0);");
         src.push("}");
@@ -264,10 +275,6 @@ export class TrianglesDataTexturePickMeshRenderer {
 
         src.push("void main(void) {");
 
-        // model matrices
-        src.push ("mat4 worldMatrix = sceneModelWorldMatrix * mat4 (texelFetch (uTextureModelMatrices, ivec2(0, 0), 0), texelFetch (uTextureModelMatrices, ivec2(1, 0), 0), texelFetch (uTextureModelMatrices, ivec2(2, 0), 0), texelFetch (uTextureModelMatrices, ivec2(3, 0), 0));");
-
-        // constants
         src.push("int polygonIndex = gl_VertexID / 3;")
 
         // get packed object-id
@@ -334,7 +341,7 @@ export class TrianglesDataTexturePickMeshRenderer {
         // when the geometry is not solid, if needed, flip the triangle winding
         src.push("if (solid != 1u) {");
             src.push("if (isPerspectiveMatrix(projMatrix)) {");
-                src.push("vec3 uCameraEyeRtcInQuantizedSpace = (inverse(worldMatrix * positionsDecodeMatrix) * vec4(uCameraEyeRtc, 1)).xyz;")
+                src.push("vec3 uCameraEyeRtcInQuantizedSpace = (inverse(sceneModelWorldMatrix * positionsDecodeMatrix) * vec4(uCameraEyeRtc, 1)).xyz;")
                 src.push("if (dot(position.xyz - uCameraEyeRtcInQuantizedSpace, normal) < 0.0) {");
                     src.push("position = positions[2 - (gl_VertexID % 3)];");
                 src.push("}");
@@ -346,7 +353,7 @@ export class TrianglesDataTexturePickMeshRenderer {
             src.push("}");
         src.push("}");
 
-        src.push("vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); ");
+        src.push("vec4 worldPosition = sceneModelWorldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); ");
 
         // get XYZ offset
         src.push("vec4 offset = vec4(texelFetch (uTexturePerObjectIdOffsets, objectIndexCoords, 0).rgb, 0.0);");
@@ -365,7 +372,7 @@ export class TrianglesDataTexturePickMeshRenderer {
             src.push("vFragDepth = 1.0 + clipPos.w;");
             src.push("isPerspective = float (isPerspectiveMatrix(projMatrix));");
         }
-        src.push("gl_Position = clipPos;");
+        src.push("gl_Position = remapClipPos(clipPos);");
         src.push("  }");
         src.push("}");
         return src;
