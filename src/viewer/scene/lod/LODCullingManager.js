@@ -41,7 +41,6 @@ export class LODCullingManager {
         }
         const entitiesInLOD = lodState.entitiesInLOD [lodState.primLODLevels[lodState.lodLevelIndex]] || [];
         for (let i = 0, len = entitiesInLOD.length; i < len; i++) {
-
             entitiesInLOD[i].culledLOD = true;
         }
         lodState.lodLevelIndex++;

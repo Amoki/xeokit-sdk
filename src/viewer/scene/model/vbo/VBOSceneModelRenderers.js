@@ -82,12 +82,17 @@ class VBOSceneModelRenderer {
         return src;
     }
 
-    _addRemapClipPosLines(src) {
+    _addRemapClipPosLines(src, viewportSize = 1) {
+        src.push("uniform vec2 drawingBufferSize;");
         src.push("uniform vec2 pickClipPos;");
 
         src.push("vec4 remapClipPos(vec4 clipPos) {");
-        src.push("    clipPos.xy /= clipPos.w;")
-        src.push("    clipPos.xy -= pickClipPos;");
+        src.push("    clipPos.xy /= clipPos.w;");
+        if (viewportSize === 1) {
+            src.push("    clipPos.xy = (clipPos.xy - pickClipPos) * drawingBufferSize;");
+        } else {
+            src.push(`    clipPos.xy = (clipPos.xy - pickClipPos) * (drawingBufferSize / float(${viewportSize}));`);
+        }
         src.push("    clipPos.xy *= clipPos.w;")
         src.push("    return clipPos;")
         src.push("}");
@@ -228,6 +233,7 @@ class VBOSceneModelRenderer {
         this._uPickZNear = program.getLocation("pickZNear");
         this._uPickZFar = program.getLocation("pickZFar");
         this._uPickClipPos = program.getLocation("pickClipPos");
+        this._uDrawingBufferSize = program.getLocation("drawingBufferSize");
 
         this._uColorMap = "uColorMap";
         this._uMetallicRoughMap = "uMetallicRoughMap";
@@ -275,6 +281,10 @@ class VBOSceneModelRenderer {
 
         if (this._uLightAmbient) {
             gl.uniform4fv(this._uLightAmbient, lightsState.getAmbientColorAndIntensity());
+        }
+
+        if (this._uGammaFactor) {
+            gl.uniform1f(this._uGammaFactor, scene.gammaFactor);
         }
 
         for (let i = 0, len = lights.length; i < len; i++) {
@@ -494,8 +504,8 @@ class VBOSceneModelRenderer {
             gl.uniform2fv(this._uPickClipPos, frameCtx.pickClipPos);
         }
 
-        if (this._uPositionsDecodeMatrix) {
-            gl.uniformMatrix4fv(this._uPositionsDecodeMatrix, false, state.positionsDecodeMatrix);
+        if (this._uDrawingBufferSize) {
+            gl.uniform2f(this._uDrawingBufferSize, gl.drawingBufferWidth, gl.drawingBufferHeight);
         }
 
         if (this._uUVDecodeMatrix) {

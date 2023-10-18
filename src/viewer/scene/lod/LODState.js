@@ -1,3 +1,5 @@
+import {math} from "../math/math.js";
+
 /**
  * Data structure containing pre-initialized `LOD` data.
  *
@@ -5,7 +7,6 @@
  *
  * @private
  */
-import {math} from "../math/math.js";
 
 export class LODState {
 
@@ -88,21 +89,25 @@ export class LODState {
         if (entityList.length === 0) {
             return;
         }
+        const neverCullTypesMap = sceneModel.scene.lod.neverCullTypesMap;
+        const metaScene = sceneModel.scene.viewer.metaScene;
         const entitiesInLOD = {};
         const primCountInLOD = {};
-        const maxSize = 15;
-        const minComplexity = 10;
+        const maxSize = 20;
+        const minComplexity = 25;
 
         for (let i = 0, len = entityList.length; i < len; i++) {
             const entity = entityList[i];
+            const metaObject = metaScene.metaObjects[entity.id];
+            if (metaObject && neverCullTypesMap[metaObject.type]) {
+                continue;
+            }
             const entityComplexity = entity.numPrimitives;
             const entitySize = math.getAABB3Diag(entity.aabb);
-// //            const isCullable = ((minComplexity <= entityComplexity) && (entitySize <= maxSize));
-//             const isCullable = ( (entitySize <= maxSize));
-//
-//             if (!isCullable) {
-//                 continue;
-//             }
+            // const isCullable = ((minComplexity <= entityComplexity) && (entitySize <= maxSize));
+            // if (!isCullable) {
+            //     continue;
+            // }
             let lodLevel = 0, len;
             for (lodLevel = 0, len = this.primLODLevels.length; lodLevel < len; lodLevel++) {
                 if (entity.numPrimitives >= this.primLODLevels [lodLevel]) {

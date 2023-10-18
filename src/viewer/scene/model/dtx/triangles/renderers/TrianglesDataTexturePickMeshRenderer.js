@@ -82,6 +82,7 @@ export class TrianglesDataTexturePickMeshRenderer {
             rtcCameraEye = camera.eye;
         }
         gl.uniform2fv(this._uPickClipPos, frameCtx.pickClipPos);
+        gl.uniform2f(this._uDrawingBufferSize, gl.drawingBufferWidth, gl.drawingBufferHeight);
         gl.uniformMatrix4fv(this._uSceneModelWorldMatrix, false, rotationMatrixConjugate);
         gl.uniformMatrix4fv(this._uViewMatrix, false, rtcViewMatrix);
         gl.uniformMatrix4fv(this._uProjMatrix, false, camera.projMatrix);
@@ -156,6 +157,7 @@ export class TrianglesDataTexturePickMeshRenderer {
         this._uRenderPass = program.getLocation("renderPass");
         this._uPickInvisible = program.getLocation("pickInvisible");
         this._uPickClipPos = program.getLocation("pickClipPos");
+        this._uDrawingBufferSize = program.getLocation("drawingBufferSize");
         this._uSceneModelWorldMatrix = program.getLocation("sceneModelWorldMatrix");
         this._uViewMatrix = program.getLocation("viewMatrix");
         this._uProjMatrix = program.getLocation("projMatrix");
@@ -166,10 +168,6 @@ export class TrianglesDataTexturePickMeshRenderer {
                 pos: program.getLocation("sectionPlanePos" + i),
                 dir: program.getLocation("sectionPlaneDir" + i)
             });
-        }
-        if (this._withSAO) {
-            this._uOcclusionTexture = "uOcclusionTexture";
-            this._uSAOParams = program.getLocation("uSAOParams");
         }
         if (scene.logarithmicDepthBufferEnabled) {
             this._uLogDepthBufFC = program.getLocation("logDepthBufFC");
@@ -186,12 +184,9 @@ export class TrianglesDataTexturePickMeshRenderer {
     }
 
     _bindProgram(frameCtx) {
-
         const scene = this._scene;
         const gl = scene.canvas.gl;
-
         this._program.bind();
-
         gl.uniform1i(this._uPickInvisible, frameCtx.pickInvisible);
     }
 
@@ -254,10 +249,11 @@ export class TrianglesDataTexturePickMeshRenderer {
         }
 
         src.push("uniform vec2 pickClipPos;");
+        src.push("uniform vec2 drawingBufferSize;");
 
         src.push("vec4 remapClipPos(vec4 clipPos) {");
         src.push("    clipPos.xy /= clipPos.w;")
-        src.push("    clipPos.xy -= pickClipPos;");
+        src.push(`    clipPos.xy = (clipPos.xy - pickClipPos) * drawingBufferSize;`);
         src.push("    clipPos.xy *= clipPos.w;")
         src.push("    return clipPos;")
         src.push("}");

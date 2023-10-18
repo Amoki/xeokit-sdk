@@ -13,6 +13,8 @@ export class LOD extends Component {
 
         this._scene = scene;
         this._lodLevels = [2000, 600, 150, 80, 20];
+        this._neverCullTypes = [];
+        this._neverCullTypesMap = {};
         this._lodManagers = {};
         this._lodManagerList = [];
 
@@ -131,6 +133,44 @@ export class LOD extends Component {
         return this._targetFPS;
     }
 
+    /**
+     * Sets the {@link MetaObject} types that are never culled.
+     *
+     * Default value is ````[]````.
+     *
+     * @type {string[]}
+     */
+    set neverCullTypes(value) {
+        if (value === undefined || value === null) {
+            value = [];
+        }
+        this._neverCullTypes = value;
+        this._neverCullTypesMap = {};
+        for (let i = 0, len = this._neverCullTypes.length; i < len; i++) {
+            this._neverCullTypesMap[this._neverCullTypes[i]] = true;
+        }
+      //  this.glRedraw();
+    }
+
+    /**
+     * Gets the {@link MetaObject} types that are never culled.
+     *
+     * Default value is ````[]````.
+     *
+     * @type {string[]}
+     */
+    get neverCullTypes() {
+        return this._neverCullTypes;
+    }
+
+    /**
+     * @private
+     * @returns {*|{}}
+     */
+    get neverCullTypesMap() {
+        return this._neverCullTypesMap;
+    }
+    
     /**
      * Called within SceneModel constructors
      * @private
