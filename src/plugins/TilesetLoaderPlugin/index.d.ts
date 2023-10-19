@@ -1,11 +1,12 @@
 declare namespace TSL {
   interface TilesetLoaderPlugin {
     cfg: {
-      computeViewDistance: (tile: Tile) => number;
       computePriority: (tile: Tile) => number;
       distanceFactorToFreeData: number;
-      viewDistance: number;
+      sensitivity: number;
+      debugMode: boolean;
     };
+    sensitivity: number;
     tilesets: Set<Tileset>;
     loader: XKTLoaderPlugin;
     load(tilesetData: TilesetData): Tileset;
@@ -26,7 +27,7 @@ declare namespace TSL {
     loadedTiles: Set<Tile>;
     queue: Queue;
     renderNeeded: boolean;
-    viewDistance: number;
+    sensitivity: number;
     root: Tile;
     updateVisibility(): void;
     render(): void;
@@ -43,7 +44,6 @@ declare namespace TSL {
 
   interface Tile {
     tileset: Tileset;
-    computeViewDistance: (tile: Tile) => number;
     computePriority: (tile: Tile) => number;
     distanceFactorToFreeData: number;
     src: string;
