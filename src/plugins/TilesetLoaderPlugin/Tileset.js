@@ -25,34 +25,35 @@ export default class Tileset {
 
     this.destroyed = false;
 
-    this._viewDistance = tilesetPlugin.cfg.viewDistance;
+    this._sensitivity = tilesetPlugin.sensitivity;
+
+    if (tilesetData.root.transform) {
+      this.rootTransform = tilesetData.root.transform
+    }
 
     this.root = new Tile(this, tilesetData.root);
+
     this.root.load().then(model => tilesetPlugin.viewer.cameraFlight.flyTo(model));
   }
 
-  get viewDistance() {
-    return this._viewDistance;
+  get sensitivity() {
+    return this._sensitivity;
   }
 
-  set viewDistance(value) {
-    this._viewDistance = value;
+  set sensitivity(value) {
+    this._sensitivity = value;
 
     this.updateVisibility();
   }
 
   updateVisibility() {
-    const [x, y, z] = this.plugin.viewer.camera.eye;
-
     this.tiles.forEach(tile => {
       if (tile !== this.root) {
         tile.visible = false;
       }
     });
 
-    // camera is Y-UP
-    const zToY = [x, z, -y];
-    this.root.updateVisibility(zToY);
+    this.root.updateVisibility(this.plugin.viewer.camera.eye);
     this.renderNeeded = true;
   }
 
@@ -90,5 +91,7 @@ export default class Tileset {
     this.loadedTiles.forEach(tile => tile.unload());
 
     this.destroyed = true;
+
+    this.plugin.tilesets.delete(this);
   }
 }
