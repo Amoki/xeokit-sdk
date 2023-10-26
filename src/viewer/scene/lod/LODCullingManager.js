@@ -11,6 +11,24 @@ export class LODCullingManager {
         this.sceneModel = sceneModel;
         this.lodState = new LODState(lodLevels, targetFps);
         this.lodState.initializeLodState(sceneModel);
+        this.isCameraMoving = false;
+        // Enagle LodCulling only on camera move
+        this.timeoutDuration = 800; // Milliseconds
+        this.timer = this.timeoutDuration;
+
+        scene.camera.on("matrix", () => {
+          this.timer = this.timeoutDuration;
+          this.isCameraMoving = true;
+        });
+        scene.on ("tick", tickEvent => {
+            // Only apply Lod Culling if camera is moving
+            // Triggering the effect during coloring/selection/etc doesn't feel good.
+            this.timer -= tickEvent.deltaTime;
+            if (this.timer <= 0) {
+                this.isCameraMoving = false;
+            }
+        });
+
     }
 
     /**
@@ -57,16 +75,12 @@ export class LODCullingManager {
     applyLodCulling(currentFPS) {
         let lodState = this.lodState;
         let retVal = false;
-        if (currentFPS < lodState.targetFps) {
-            if (++lodState.consecutiveFramesWithoutTargetFps > 2) {
-                lodState.consecutiveFramesWithoutTargetFps = 0;
-                retVal = this._increaseLODLevelIndex();
-            }
-        } else if (currentFPS > (lodState.targetFps + 4)) {
-            if (++lodState.consecutiveFramesWithTargetFps > 2) {
-                lodState.consecutiveFramesWithTargetFps = 0;
-                retVal = this._decreaseLODLevelIndex();
-            }
+        if (this.isCameraMoving && currentFPS < lodState.targetFps) {
+            retVal = this._increaseLODLevelIndex();
+        } else if (!this.isCameraMoving) {
+            while(this._decreaseLODLevelIndex() === true) {
+                retVal = true;
+            };
         }
         return retVal;
     }
