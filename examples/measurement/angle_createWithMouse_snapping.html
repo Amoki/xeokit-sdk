@@ -37,7 +37,14 @@
                target="_other">PointerLens</a>
         </li>
     </ul>
-    <h3>Resources</h3>
+    <h3>Tutorials</h3>
+    <ul>
+        <li>
+            <a href="https://www.notion.so/xeokit/Accurate-Measurements-with-Snapping-5e6606afef20428f9b319ea0e82270f9"
+               target="_other">Accurate Measurements with Snapping</a>
+        </li>
+    </ul>
+    <h3>Assets</h3>
     <ul>
         <li>
             <a href="http://openifcmodel.cs.auckland.ac.nz/Model/Details/274"
@@ -73,9 +80,20 @@
         edges: true
     });
 
-    const angleMeasurements = new AngleMeasurementsPlugin(viewer);
+    const angleMeasurementsPlugin = new AngleMeasurementsPlugin(viewer);
 
-    const angleMeasurementsMouseControl = new AngleMeasurementsMouseControl(angleMeasurements, {
+    angleMeasurementsPlugin.on("mouseOver", (e) => {
+        e.measurement.setHighlighted(true);
+    });
+
+    angleMeasurementsPlugin.on("mouseLeave", (e) => {
+        if (angleMeasurementsContextMenu.shown && angleMeasurementsContextMenu.context.measurement.id === e.measurement.id) {
+            return;
+        }
+        e.measurement.setHighlighted(false);
+    });
+
+    const angleMeasurementsMouseControl = new AngleMeasurementsMouseControl(angleMeasurementsPlugin, {
         pointerLens: new PointerLens(viewer)
     });
 
