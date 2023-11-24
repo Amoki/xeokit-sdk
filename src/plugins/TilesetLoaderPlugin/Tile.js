@@ -1,6 +1,13 @@
 import { math } from "../../viewer/scene/math/math.js";
 import { Mesh, buildBoxLinesGeometry, ReadableGeometry, PhongMaterial } from "../../viewer/scene/index.js";
 
+
+const zUpToyUpMatrix = [
+  1,0,0,0,
+  0,0,1,0,
+  0,1,0,0,
+  0,0,0,1,
+];
 export default class Tile {
   /**
    * @constructor
@@ -65,14 +72,6 @@ export default class Tile {
     this.xSize = math.lenVec3(halfXVector);
     this.ySize = math.lenVec3(halfZVector);
     this.zSize = math.lenVec3(halfYVector);
-
-    this.volume =
-      this.xSize *
-      2 *
-      this.ySize *
-      2 *
-      this.zSize *
-      2;
 
     this.children = tileData.children?.map(
       child => new Tile(tileset, child, this)
@@ -208,15 +207,18 @@ export default class Tile {
       return null;
     }
 
+
     if (this.tileset.plugin.debugMode) {
       this.showBoundingBox();
     }
 
     try {
       const loadingPromise = new Promise(res => {
+        const matrix = mulMat4(this.tileset.rootTransform, zUpToyUpMatrix, []);
         const model = this.tileset.plugin.loader.load({
           id: this.name,
           xkt: this.data,
+          matrix: matrix,
           // To silent xeokit error
           metaModelData: {
             metaObjects: [
@@ -244,6 +246,7 @@ export default class Tile {
         });
 
         model.once("destroyed", () => {
+          console.log('when?')
           this.loading = false;
 
           this.loadProcess = null;
