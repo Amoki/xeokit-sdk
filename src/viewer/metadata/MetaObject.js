@@ -22,15 +22,6 @@ class MetaObject {
     constructor(params) {
 
         /**
-         * Model metadata.
-         *
-         * @property metaModel
-         * @type {MetaModel}
-         * @deprecated
-         */
-        this.metaModel = null;
-
-        /**
          * The MetaModels that share this MetaObject.
          * @type {MetaModel[]}
          */
@@ -102,18 +93,32 @@ class MetaObject {
          */
         this.attributes = params.attributes || {};
 
-        // if (external !== undefined && external !== null) {
-        //
-        //     /**
-        //      * External application-specific metadata
-        //      *
-        //      * Undefined when there are is no external application-specific metadata.
-        //      *
-        //      * @property external
-        //      * @type {*}
-        //      */
-        //     this.external = external;
-        // }
+        if (params.external !== undefined && params.external !== null) {
+        
+            /**
+             * External application-specific metadata
+             *
+             * Undefined when there are is no external application-specific metadata.
+             *
+             * @property external
+             * @type {*}
+             */
+            this.external = params.external;
+        }
+    }
+
+    /**
+     * Backwards compatibility with the object belonging to a single MetaModel.
+     * 
+     * @property metaModel
+     * @type {MetaModel|null}
+     **/
+    get metaModel() {
+        if (this.metaModels.length == 1) {
+            return this.metaModels[0];
+        }
+
+        return null;
     }
 
     /**

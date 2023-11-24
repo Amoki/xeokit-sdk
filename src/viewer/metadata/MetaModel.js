@@ -115,15 +115,6 @@ class MetaModel {
         this.propertySets = [];
 
         /**
-         * The root {@link MetaObject} in this MetaModel's composition structure hierarchy.
-         *
-         * @property rootMetaObject
-         * @type {MetaObject}
-         * @deprecated
-         */
-        this.rootMetaObject = null;
-
-        /**
          * The root {@link MetaObject}s in this MetaModel's composition structure hierarchy.
          *
          * @property rootMetaObject
@@ -155,6 +146,19 @@ class MetaModel {
     }
 
     /**
+     * Backwards compatibility with the model having a single root MetaObject.
+     *
+     * @property rootMetaObject
+     * @type {MetaObject|null}
+     */
+    get rootMetaObject() {
+        if (this.rootMetaObjects.length == 1) {
+            return this.rootMetaObjects[0];
+        }
+        return null;
+    }
+
+    /**
      * Load metamodel data into this MetaModel.
      * @param metaModelData
      */
@@ -167,6 +171,7 @@ class MetaModel {
         this._globalizeIDs(metaModelData, options)
 
         const metaScene = this.metaScene;
+        const propertyLookup = metaModelData.properties;
 
         // Create global Property Sets
 
@@ -175,6 +180,9 @@ class MetaModel {
                 const propertySetData = metaModelData.propertySets[i];
                 let propertySet = metaScene.propertySets[propertySetData.id];
                 if (!propertySet) {
+                    if (propertyLookup) {
+                        this._decompressProperties(propertyLookup, propertySetData.properties);
+                    }
                     propertySet = new PropertySet({
                         id: propertySetData.id,
                         originalSystemId: propertySetData.originalSystemId || propertySetData.id,
@@ -205,7 +213,8 @@ class MetaModel {
                         type,
                         name: metaObjectData.name,
                         attributes: metaObjectData.attributes,
-                        propertySetIds
+                        propertySetIds,
+                        external: metaObjectData.external,
                     });
                     this.metaScene.metaObjects[id] = metaObject;
                 }
@@ -215,6 +224,18 @@ class MetaModel {
                     metaScene.rootMetaObjects[id] = metaObject;
                 }
                 this.metaObjects.push(metaObject);
+            }
+        }
+    }
+
+    _decompressProperties(propertyLookup, properties) {
+        for (let i = 0, len = properties.length; i < len; i++) {
+            const property = properties[i];
+            if (Number.isInteger(property)) {
+                const lookupProperty = propertyLookup[property];
+                if (lookupProperty) {
+                    properties[i] = lookupProperty;
+                }
             }
         }
     }
@@ -347,10 +368,14 @@ class MetaModel {
                 // Globalize MetaObject IDs and parent IDs
 
                 metaObjectData.originalSystemId = metaObjectData.id;
-                metaObjectData.originalParentSystemId = metaObjectData.parent;
+                if (metaObjectData.parent) {
+                    metaObjectData.originalParentSystemId = metaObjectData.parent;
+                }
                 if (globalize) {
                     metaObjectData.id = math.globalizeObjectId(this.id, metaObjectData.id);
-                    metaObjectData.parent = math.globalizeObjectId(this.id, metaObjectData.parent);
+                    if (metaObjectData.parent) {
+                        metaObjectData.parent = math.globalizeObjectId(this.id, metaObjectData.parent);
+                    }
                 }
 
                 // Globalize MetaObject property set IDs

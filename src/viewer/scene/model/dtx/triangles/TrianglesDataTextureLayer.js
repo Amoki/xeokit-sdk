@@ -39,6 +39,7 @@ const MAX_OBJECT_UPDATES_IN_FRAME_WITHOUT_BATCHED_UPDATE = 10;
 const tempVec4a = math.vec4([0, 0, 0, 1]);
 const tempVec4b = math.vec4([0, 0, 0, 1]);
 const tempVec4c = math.vec4([0, 0, 0, 1]);
+const tempMat4a = new Float32Array(16);
 const tempUint8Array4 = new Uint8Array(4);
 const tempFloat32Array3 = new Float32Array(3);
 
@@ -70,7 +71,6 @@ export class TrianglesDataTextureLayer {
         this._state = new RenderState({
             origin: math.vec3(cfg.origin),
             metallicRoughnessBuf: null,
-            positionsDecodeMatrix: math.mat4(),
             textureState: this._dataTextureState,
             numIndices8Bits: 0,
             numIndices16Bits: 0,
@@ -255,12 +255,11 @@ export class TrianglesDataTextureLayer {
         const indices = bucket.indices;
         const edgeIndices = bucket.edgeIndices;
         const buffer = this._buffer;
-        const vertexBase = buffer.positionsCompressed.length / 3;
-        const numVertices = positionsCompressed.length / 3;
 
-        for (let i = 0, len = positionsCompressed.length; i < len; i++) {
-            buffer.positionsCompressed.push(positionsCompressed[i]);
-        }
+        buffer.positionsCompressed.push(positionsCompressed)
+        const vertexBase = buffer.lenPositionsCompressed / 3;
+        const numVertices = positionsCompressed.length / 3;
+        buffer.lenPositionsCompressed += positionsCompressed.length;
 
         let indicesBase;
         let numTriangles = 0;
@@ -269,15 +268,18 @@ export class TrianglesDataTextureLayer {
             let indicesBuffer;
             if (numVertices <= (1 << 8)) {
                 indicesBuffer = buffer.indices8Bits;
+                indicesBase = buffer.lenIndices8Bits / 3;
+                buffer.lenIndices8Bits += indices.length;
             } else if (numVertices <= (1 << 16)) {
                 indicesBuffer = buffer.indices16Bits;
+                indicesBase = buffer.lenIndices16Bits / 3;
+                buffer.lenIndices16Bits += indices.length;
             } else {
                 indicesBuffer = buffer.indices32Bits;
+                indicesBase = buffer.lenIndices32Bits / 3;
+                buffer.lenIndices32Bits += indices.length;
             }
-            indicesBase = indicesBuffer.length / 3;
-            for (let i = 0, len = indices.length; i < len; i++) {
-                indicesBuffer.push(indices[i]);
-            }
+            indicesBuffer.push(indices);
         }
 
         let edgeIndicesBase;
@@ -287,15 +289,18 @@ export class TrianglesDataTextureLayer {
             let edgeIndicesBuffer;
             if (numVertices <= (1 << 8)) {
                 edgeIndicesBuffer = buffer.edgeIndices8Bits;
+                edgeIndicesBase = buffer.lenEdgeIndices8Bits / 2;
+                buffer.lenEdgeIndices8Bits += edgeIndices.length;
             } else if (numVertices <= (1 << 16)) {
                 edgeIndicesBuffer = buffer.edgeIndices16Bits;
+                edgeIndicesBase = buffer.lenEdgeIndices16Bits / 2;
+                buffer.lenEdgeIndices16Bits += edgeIndices.length;
             } else {
                 edgeIndicesBuffer = buffer.edgeIndices32Bits;
+                edgeIndicesBase = buffer.lenEdgeIndices32Bits / 2;
+                buffer.lenEdgeIndices32Bits += edgeIndices.length;
             }
-            edgeIndicesBase = edgeIndicesBuffer.length / 2;
-            for (let i = 0, len = edgeIndices.length; i < len; i++) {
-                edgeIndicesBuffer.push(edgeIndices[i]);
-            }
+            edgeIndicesBuffer.push(edgeIndices);
         }
 
         this._state.numVertices += numVertices;
@@ -466,8 +471,7 @@ export class TrianglesDataTextureLayer {
         const buffer = this._buffer;
 
         state.gl = gl;
-
-        textureState.texturePerObjectIdColorsAndFlags = this._dataTextureGenerator.generateTextureForColorsAndFlags(
+        textureState.texturePerObjectColorsAndFlags = this._dataTextureGenerator.generateTextureForColorsAndFlags(
             gl,
             buffer.perObjectColors,
             buffer.perObjectPickColors,
@@ -476,17 +480,25 @@ export class TrianglesDataTextureLayer {
             buffer.perObjectEdgeIndexBaseOffsets,
             buffer.perObjectSolid);
 
-        textureState.texturePerObjectIdOffsets
-            = this._dataTextureGenerator.generateTextureForObjectOffsets(gl, this._numPortions);
+        textureState.texturePerObjectInstanceMatrices
+            = this._dataTextureGenerator.generateTextureForInstancingMatrices(gl, buffer.perObjectInstancePositioningMatrices);
 
-        textureState.texturePerObjectIdPositionsDecodeMatrix = this._dataTextureGenerator.generateTextureForPositionsDecodeMatrices(
+        textureState.texturePerObjectPositionsDecodeMatrix
+            = this._dataTextureGenerator.generateTextureForPositionsDecodeMatrices(
             gl,
-            buffer.perObjectPositionsDecodeMatrices,
-            buffer.perObjectInstancePositioningMatrices);
+            buffer.perObjectPositionsDecodeMatrices);
+
+        // const positionsCompressed = new Uint16Array(buffer.lenPositionsCompressed);
+        // for (let i = 0, j = 0, len = buffer.positionsCompressed.length; i < len; i++) {
+        //     const pc = buffer.positionsCompressed[i];
+        //     positionsCompressed.set(pc, j);
+        //     j += pc.length;
+        // }
 
         textureState.texturePerVertexIdCoordinates = this._dataTextureGenerator.generateTextureForPositions(
             gl,
-            buffer.positionsCompressed);
+            buffer.positionsCompressed,
+            buffer.lenPositionsCompressed );
 
         textureState.texturePerPolygonIdPortionIds8Bits = this._dataTextureGenerator.generateTextureForPackedPortionIds(
             gl,
@@ -512,47 +524,46 @@ export class TrianglesDataTextureLayer {
                 buffer.perEdgeNumberPortionId16Bits);
         }
 
-
         if (buffer.perEdgeNumberPortionId32Bits.length > 0) {
             textureState.texturePerEdgeIdPortionIds32Bits = this._dataTextureGenerator.generateTextureForPackedPortionIds(
                 gl,
                 buffer.perEdgeNumberPortionId32Bits);
         }
 
-        if (buffer.indices8Bits.length > 0) {
+        if (buffer.lenIndices8Bits > 0) {
             textureState.texturePerPolygonIdIndices8Bits = this._dataTextureGenerator.generateTextureFor8BitIndices(
                 gl,
-                buffer.indices8Bits);
+                buffer.indices8Bits, buffer.lenIndices8Bits);
         }
 
-        if (buffer.indices16Bits.length > 0) {
+        if (buffer.lenIndices16Bits > 0) {
             textureState.texturePerPolygonIdIndices16Bits = this._dataTextureGenerator.generateTextureFor16BitIndices(
                 gl,
-                buffer.indices16Bits);
+                buffer.indices16Bits, buffer.lenIndices16Bits);
         }
 
-        if (buffer.indices32Bits.length > 0) {
+        if (buffer.lenIndices32Bits > 0) {
             textureState.texturePerPolygonIdIndices32Bits = this._dataTextureGenerator.generateTextureFor32BitIndices(
                 gl,
-                buffer.indices32Bits);
+                buffer.indices32Bits, buffer.lenIndices32Bits);
         }
 
-        if (buffer.edgeIndices8Bits.length > 0) {
+        if (buffer.lenEdgeIndices8Bits > 0) {
             textureState.texturePerPolygonIdEdgeIndices8Bits = this._dataTextureGenerator.generateTextureFor8BitsEdgeIndices(
                 gl,
-                buffer.edgeIndices8Bits);
+                buffer.edgeIndices8Bits, buffer.lenEdgeIndices8Bits);
         }
 
-        if (buffer.edgeIndices16Bits.length > 0) {
+        if (buffer.lenEdgeIndices16Bits > 0) {
             textureState.texturePerPolygonIdEdgeIndices16Bits = this._dataTextureGenerator.generateTextureFor16BitsEdgeIndices(
                 gl,
-                buffer.edgeIndices16Bits);
+                buffer.edgeIndices16Bits, buffer.lenEdgeIndices16Bits);
         }
 
-        if (buffer.edgeIndices32Bits.length > 0) {
+        if (buffer.lenEdgeIndices32Bits > 0) {
             textureState.texturePerPolygonIdEdgeIndices32Bits = this._dataTextureGenerator.generateTextureFor32BitsEdgeIndices(
                 gl,
-                buffer.edgeIndices32Bits);
+                buffer.edgeIndices32Bits, buffer.lenEdgeIndices32Bits);
         }
 
         textureState.finalize();
@@ -740,30 +751,30 @@ export class TrianglesDataTextureLayer {
         this._deferredSetFlagsDirty = false;
         const gl = this.model.scene.canvas.gl;
         const textureState = this._dataTextureState;
-        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectIdColorsAndFlags._texture);
+        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectColorsAndFlags._texture);
         gl.texSubImage2D(
             gl.TEXTURE_2D,
             0, // level
             0, // xoffset
             0, // yoffset
-            textureState.texturePerObjectIdColorsAndFlags._textureWidth, // width
-            textureState.texturePerObjectIdColorsAndFlags._textureHeight, // width
+            textureState.texturePerObjectColorsAndFlags._textureWidth, // width
+            textureState.texturePerObjectColorsAndFlags._textureHeight, // width
             gl.RGBA_INTEGER,
             gl.UNSIGNED_BYTE,
-            textureState.texturePerObjectIdColorsAndFlags._textureData
+            textureState.texturePerObjectColorsAndFlags._textureData
         );
-        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectIdOffsets._texture);
-        gl.texSubImage2D(
-            gl.TEXTURE_2D,
-            0, // level
-            0, // xoffset
-            0, // yoffset
-            textureState.texturePerObjectIdOffsets._textureWidth, // width
-            textureState.texturePerObjectIdOffsets._textureHeight, // width
-            gl.RGB,
-            gl.FLOAT,
-            textureState.texturePerObjectIdOffsets._textureData
-        );
+        // gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectInstanceMatrices._texture);
+        // gl.texSubImage2D(
+        //     gl.TEXTURE_2D,
+        //     0, // level
+        //     0, // xoffset
+        //     0, // yoffset
+        //     textureState.texturePerObjectInstanceMatrices._textureWidth, // width
+        //     textureState.texturePerObjectInstanceMatrices._textureHeight, // width
+        //     gl.RGB,
+        //     gl.FLOAT,
+        //     textureState.texturePerObjectInstanceMatrices._textureData
+        // );
     }
 
     setCulled(portionId, flags, transparent) {
@@ -819,7 +830,7 @@ export class TrianglesDataTextureLayer {
         tempUint8Array4 [2] = color[2];
         tempUint8Array4 [3] = color[3];
         // object colors
-        textureState.texturePerObjectIdColorsAndFlags._textureData.set(tempUint8Array4, subPortionId * 32);
+        textureState.texturePerObjectColorsAndFlags._textureData.set(tempUint8Array4, subPortionId * 32);
         if (this._deferredSetFlagsActive) {
             console.info("_subPortionSetColor defer");
             this._deferredSetFlagsDirty = true;
@@ -829,7 +840,7 @@ export class TrianglesDataTextureLayer {
             this._beginDeferredFlags(); // Subsequent flags updates now deferred
         }
         console.info("_subPortionSetColor write through");
-        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectIdColorsAndFlags._texture);
+        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectColorsAndFlags._texture);
         gl.texSubImage2D(
             gl.TEXTURE_2D,
             0, // level
@@ -934,7 +945,7 @@ export class TrianglesDataTextureLayer {
         tempUint8Array4 [2] = f2;
         tempUint8Array4 [3] = f3;
         // object flags
-        textureState.texturePerObjectIdColorsAndFlags._textureData.set(tempUint8Array4, subPortionId * 32 + 8);
+        textureState.texturePerObjectColorsAndFlags._textureData.set(tempUint8Array4, subPortionId * 32 + 8);
         if (this._deferredSetFlagsActive || deferred) {
             this._deferredSetFlagsDirty = true;
             return;
@@ -942,7 +953,7 @@ export class TrianglesDataTextureLayer {
         if (++this._numUpdatesInFrame >= MAX_OBJECT_UPDATES_IN_FRAME_WITHOUT_BATCHED_UPDATE) {
             this._beginDeferredFlags(); // Subsequent flags updates now deferred
         }
-        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectIdColorsAndFlags._texture);
+        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectColorsAndFlags._texture);
         gl.texSubImage2D(
             gl.TEXTURE_2D,
             0, // level
@@ -979,7 +990,7 @@ export class TrianglesDataTextureLayer {
         tempUint8Array4 [2] = 1;
         tempUint8Array4 [3] = 2;
         // object flags2
-        textureState.texturePerObjectIdColorsAndFlags._textureData.set(tempUint8Array4, subPortionId * 32 + 12);
+        textureState.texturePerObjectColorsAndFlags._textureData.set(tempUint8Array4, subPortionId * 32 + 12);
         if (this._deferredSetFlagsActive || deferred) {
             // console.log("_subPortionSetFlags2 set flags defer");
             this._deferredSetFlagsDirty = true;
@@ -988,7 +999,7 @@ export class TrianglesDataTextureLayer {
         if (++this._numUpdatesInFrame >= MAX_OBJECT_UPDATES_IN_FRAME_WITHOUT_BATCHED_UPDATE) {
             this._beginDeferredFlags(); // Subsequent flags updates now deferred
         }
-        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectIdColorsAndFlags._texture);
+        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectColorsAndFlags._texture);
         gl.texSubImage2D(
             gl.TEXTURE_2D,
             0, // level
@@ -1027,7 +1038,7 @@ export class TrianglesDataTextureLayer {
         tempFloat32Array3 [1] = offset[1];
         tempFloat32Array3 [2] = offset[2];
         // object offset
-        textureState.texturePerObjectIdOffsets._textureData.set(tempFloat32Array3, subPortionId * 3);
+        textureState.texturePerObjectOffsets._textureData.set(tempFloat32Array3, subPortionId * 3);
         if (this._deferredSetFlagsActive) {
             this._deferredSetFlagsDirty = true;
             return;
@@ -1035,7 +1046,7 @@ export class TrianglesDataTextureLayer {
         if (++this._numUpdatesInFrame >= MAX_OBJECT_UPDATES_IN_FRAME_WITHOUT_BATCHED_UPDATE) {
             this._beginDeferredFlags(); // Subsequent flags updates now deferred
         }
-        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectIdOffsets._texture);
+        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectOffsets._texture);
         gl.texSubImage2D(
             gl.TEXTURE_2D,
             0, // level
@@ -1050,6 +1061,48 @@ export class TrianglesDataTextureLayer {
         // gl.bindTexture (gl.TEXTURE_2D, null);
     }
 
+    setMatrix(portionId, matrix) {
+        const subPortionIds = this._portionToSubPortionsMap[portionId];
+        for (let i = 0, len = subPortionIds.length; i < len; i++) {
+            this._subPortionSetMatrix(subPortionIds[i], matrix);
+        }
+    }
+
+    _subPortionSetMatrix(subPortionId, matrix) {
+        if (!this._finalized) {
+            throw "Not finalized";
+        }
+        // if (!this.model.scene.entityMatrixsEnabled) {
+        //     this.model.error("Entity#matrix not enabled for this Viewer"); // See Viewer entityMatrixsEnabled
+        //     return;
+        // }
+        const textureState = this._dataTextureState;
+        const gl = this.model.scene.canvas.gl;
+        tempMat4a.set(matrix);
+        textureState.texturePerObjectInstanceMatrices._textureData.set(tempMat4a, subPortionId*16);
+        if (this._deferredSetFlagsActive) {
+            this._deferredSetFlagsDirty = true;
+            return;
+        }
+        if (++this._numUpdatesInFrame >= MAX_OBJECT_UPDATES_IN_FRAME_WITHOUT_BATCHED_UPDATE) {
+            this._beginDeferredFlags(); // Subsequent flags updates now deferred
+        }
+        gl.bindTexture(gl.TEXTURE_2D, textureState.texturePerObjectInstanceMatrices._texture);
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0, // level
+            (subPortionId % 512) * 4, // xoffset
+            Math.floor(subPortionId / 512), // yoffset
+            // 1,
+            4, // width
+            1, // height
+            gl.RGBA,
+            gl.FLOAT,
+            tempMat4a
+        );
+        // gl.bindTexture (gl.TEXTURE_2D, null);
+    }
+    
     // ---------------------- COLOR RENDERING -----------------------------------
 
     drawColorOpaque(renderFlags, frameCtx) {
