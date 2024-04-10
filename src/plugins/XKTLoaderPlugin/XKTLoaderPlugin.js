@@ -431,6 +431,15 @@ parsers[ParserV10.version] = ParserV10;
  * myViewer.scene.setObjectVisibilities("myModel1#0BTBFw6f90Nfh9rP1dlXrb", true);
  *````
  *
+ * We can also provide an HTTP URL to the XKT file:
+ *
+ * ````javascript
+ * const sceneModel = xktLoader.load({
+ *   manifestSrc: "https://xeokit.github.io/xeokit-sdk/assets/models/models/xkt/Schependomlaan.xkt",
+ *   id: "myModel",
+ * });
+ * ````
+ *
  * # Loading a model from a manifest of XKT files
  *
  * The `ifc2gltf` tool from Creoox, which converts IFC files into glTF geometry and JSON metadata files, has the option to
@@ -516,6 +525,65 @@ parsers[ParserV10.version] = ParserV10;
  * is to reduce the memory pressure on each of the `ifc2gltf`, `convert2xkt` and XKTLoaderPlugin components.
  * They work much reliably (and faster) when processing smaller files (eg. 20MB) than when processing large files (eg. 500MB), where
  * they have less trouble allocating the system memory they need for conversion and parsing.
+ *
+ * We can also provide an HTTP URL to the manifest:
+ *
+ * ````javascript
+ * const sceneModel = xktLoader.load({
+ *   manifestSrc: "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model.xkt.manifest.json",
+ *   id: "myModel",
+ * });
+ * ````
+ *
+ * We can also provide the manifest as parameter object:
+ *
+ * ````javascript
+ * const sceneModel = xktLoader.load({
+ *   id: "myModel",
+ *   manifest: {
+ *   inputFile: "assets/models/gltf/Karhumaki/model.glb.manifest.json",
+ *   converterApplication: "convert2xkt",
+ *   converterApplicationVersion: "v1.1.10",
+ *   conversionDate": "09-11-2023- 18-29-01",
+ *     xktFiles: [
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_1.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_2.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_3.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_4.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_5.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_6.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_7.xkt",
+ *       "../../assets/models/xkt/v10/split/Karhumaki-Bridge/model_8.xkt"
+ *     ]
+ *   }
+ * });
+ * ````
+ *
+ * We can also provide the paths to the XKT files as HTTP URLs:
+ *
+ * ````javascript
+ * const sceneModel = xktLoader.load({
+ *   id: "myModel",
+ *   manifest: {
+ *   inputFile: "assets/models/gltf/Karhumaki/model.glb.manifest.json",
+ *   converterApplication: "convert2xkt",
+ *   converterApplicationVersion: "v1.1.10",
+ *   conversionDate": "09-11-2023- 18-29-01",
+ *     xktFiles: [
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_1.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_2.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_3.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_4.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_5.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_6.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_7.xkt",
+ *       "https://xeokit.github.io/xeokit-sdk/assets/models/xkt/v10/split/Karhumaki-Bridge/model_8.xkt"
+ *     ]
+ *   }
+ * });
+ * ````
  *
  * @class XKTLoaderPlugin
  */
@@ -786,10 +854,14 @@ class XKTLoaderPlugin extends Plugin {
      *
      * @param {*} params Loading parameters.
      * @param {String} [params.id] ID to assign to the root {@link Entity#id}, unique among all components in the Viewer's {@link Scene}, generated automatically by default.
-     * @param {String} [params.src] Path to a *````.xkt````* file, as an alternative to the ````xkt```` parameter.
+     * @param {String} [params.src] Path or URL to an *````.xkt````* file, as an alternative to the ````xkt```` parameter.
      * @param {ArrayBuffer} [params.xkt] The *````.xkt````* file data, as an alternative to the ````src```` parameter.
-     * @param {String} [params.metaModelSrc] Path to an optional metadata file, as an alternative to the ````metaModelData```` parameter.
+     * @param {String} [params.metaModelSrc] Path or URL to an optional metadata file, as an alternative to the ````metaModelData```` parameter.
      * @param {*} [params.metaModelData] JSON model metadata, as an alternative to the ````metaModelSrc```` parameter.
+     * @param {String} [params.manifestSrc] Path or URL to a JSON manifest file that provides paths to ````.xkt```` files to load as parts of the model. Use this option to load models that have been split into
+     * multiple XKT files. See [tutorial](https://www.notion.so/xeokit/Automatically-Splitting-Large-Models-for-Better-Performance-165fc022e94742cf966ee50003572259) for more info.
+     * @param {Object} [params.manifest] A JSON manifest object (as an alternative to a path or URL) that provides paths to ````.xkt```` files to load as parts of the model. Use this option to load models that have been split into
+     * multiple XKT files. See [tutorial](https://www.notion.so/xeokit/Automatically-Splitting-Large-Models-for-Better-Performance-165fc022e94742cf966ee50003572259) for more info.
      * @param {{String:Object}} [params.objectDefaults] Map of initial default states for each loaded {@link Entity} that represents an object. Default value is {@link IFCObjectDefaults}.
      * @param {String[]} [params.includeTypes] When loading metadata, only loads objects that have {@link MetaObject}s with {@link MetaObject#type} values in this list.
      * @param {String[]} [params.excludeTypes] When loading metadata, never loads objects that have {@link MetaObject}s with {@link MetaObject#type} values in this list.
@@ -825,8 +897,8 @@ class XKTLoaderPlugin extends Plugin {
             delete params.id;
         }
 
-        if (!params.src && !params.xkt && !params.manifestSrc) {
-            this.error("load() param expected: src, xkt or manifestSrc");
+        if (!params.src && !params.xkt && !params.manifestSrc && !params.manifest) {
+            this.error("load() param expected: src, xkt, manifestSrc or manifestData");
             return sceneModel; // Return new empty model
         }
 
@@ -885,7 +957,7 @@ class XKTLoaderPlugin extends Plugin {
             sceneModel.once("destroyed", () => {
                 this.viewer.metaScene.destroyMetaModel(metaModel.id);
             });
-            sceneModel.scene.once("tick", () => {
+            this.scheduleTask(() => {
                 if (sceneModel.destroyed) {
                     return;
                 }
@@ -954,8 +1026,8 @@ class XKTLoaderPlugin extends Plugin {
             } else if (params.xkt) {
                 this._parseModel(params.xkt, params, options, sceneModel, metaModel, manifestCtx);
                 finish();
-            } else if (params.manifestSrc) {
-                const baseDir = getBaseDirectory(params.manifestSrc)
+            } else if (params.manifestSrc || params.manifest) {
+                const baseDir = params.manifestSrc ? getBaseDirectory(params.manifestSrc) : "";
                 const loadJSONs = (metaDataFiles, done, error) => {
                     let i = 0;
                     const loadNext = () => {
@@ -969,14 +1041,28 @@ class XKTLoaderPlugin extends Plugin {
                                     globalizeObjectIds: options.globalizeObjectIds
                                 });
                                 i++;
-                                loadNext();
+                                this.scheduleTask(loadNext, 100);
                             }, error);
                         }
                     }
                     loadNext();
                 }
-
-                const loadXKTs = (xktFiles, done, error) => {
+                const loadXKTs_excludeTheirMetaModels = (xktFiles, done, error) => { // Load XKTs, ignore metamodels in the XKT
+                    let i = 0;
+                    const loadNext = () => {
+                        if (i >= xktFiles.length) {
+                            done();
+                        } else {
+                            this._dataSource.getXKT(`${baseDir}${xktFiles[i]}`, (arrayBuffer) => {
+                                this._parseModel(arrayBuffer, params, options, sceneModel, null /* Ignore metamodel in XKT */, manifestCtx);
+                                i++;
+                                this.scheduleTask(loadNext, 100);
+                            }, error);
+                        }
+                    }
+                    loadNext();
+                };
+                const loadXKTs_includeTheirMetaModels = (xktFiles, done, error) => { // Load XKTs, parse metamodels from the XKT
                     let i = 0;
                     const loadNext = () => {
                         if (i >= xktFiles.length) {
@@ -985,17 +1071,14 @@ class XKTLoaderPlugin extends Plugin {
                             this._dataSource.getXKT(`${baseDir}${xktFiles[i]}`, (arrayBuffer) => {
                                 this._parseModel(arrayBuffer, params, options, sceneModel, metaModel, manifestCtx);
                                 i++;
-                                loadNext();
+                                this.scheduleTask(loadNext, 100);
                             }, error);
                         }
                     }
                     loadNext();
                 };
-
-                this._dataSource.getManifest(params.manifestSrc, (manifestData) => {
-                    if (sceneModel.destroyed) {
-                        return;
-                    }
+                if (params.manifest) {
+                    const manifestData = params.manifest;
                     const xktFiles = manifestData.xktFiles;
                     if (!xktFiles || xktFiles.length === 0) {
                         error(`load(): Failed to load model manifest - manifest not valid`);
@@ -1004,12 +1087,31 @@ class XKTLoaderPlugin extends Plugin {
                     const metaModelFiles = manifestData.metaModelFiles;
                     if (metaModelFiles) {
                         loadJSONs(metaModelFiles, () => {
-                            loadXKTs(xktFiles, finish, error);
+                            loadXKTs_excludeTheirMetaModels(xktFiles, finish, error);
                         }, error);
                     } else {
-                        loadXKTs(xktFiles, finish, error);
+                        loadXKTs_includeTheirMetaModels(xktFiles, finish, error);
                     }
-                }, error);
+                } else {
+                    this._dataSource.getManifest(params.manifestSrc, (manifestData) => {
+                        if (sceneModel.destroyed) {
+                            return;
+                        }
+                        const xktFiles = manifestData.xktFiles;
+                        if (!xktFiles || xktFiles.length === 0) {
+                            error(`load(): Failed to load model manifest - manifest not valid`);
+                            return;
+                        }
+                        const metaModelFiles = manifestData.metaModelFiles;
+                        if (metaModelFiles) {
+                            loadJSONs(metaModelFiles, () => {
+                                loadXKTs_excludeTheirMetaModels(xktFiles, finish, error);
+                            }, error);
+                        } else {
+                            loadXKTs_includeTheirMetaModels(xktFiles, finish, error);
+                        }
+                    }, error);
+                }
             }
         }
 
@@ -1046,56 +1148,6 @@ class XKTLoaderPlugin extends Plugin {
         }
         parser.parse(this.viewer, options, elements, sceneModel, metaModel, manifestCtx);
     }
-
-// _createDefaultMetaModelIfNeeded(sceneModel, params, options) {
-//
-//     const metaModelId = sceneModel.id;
-//
-//     if (!this.viewer.metaScene.metaModels[metaModelId]) {
-//
-//         const metaModelData = {
-//             metaObjects: []
-//         };
-//
-//         metaModelData.metaObjects.push({
-//             id: metaModelId,
-//             type: "default",
-//             name: metaModelId,
-//             parent: null
-//         });
-//
-//         const entityList = sceneModel.entityList;
-//
-//         for (let i = 0, len = entityList.length; i < len; i++) {
-//             const entity = entityList[i];
-//             if (entity.isObject) {
-//                 metaModelData.metaObjects.push({
-//                     id: entity.id,
-//                     type: "default",
-//                     name: entity.id,
-//                     parent: metaModelId
-//                 });
-//             }
-//         }
-//
-//         const src = params.src;
-//
-//         this.viewer.metaScene.createMetaModel(metaModelId, metaModelData, {
-//
-//             includeTypes: options.includeTypes,
-//             excludeTypes: options.excludeTypes,
-//             globalizeObjectIds: options.globalizeObjectIds,
-//
-//             getProperties: async (propertiesId) => {
-//                 return await this._dataSource.getProperties(src, propertiesId);
-//             }
-//         });
-//
-//         sceneModel.once("destroyed", () => {
-//             this.viewer.metaScene.destroyMetaModel(metaModelId);
-//         });
-//     }
-// }
 }
 
 function getBaseDirectory(filePath) {

@@ -62,11 +62,25 @@ class DistanceMeasurement extends Component {
 
         const onMouseOver = cfg.onMouseOver ? (event) => {
             cfg.onMouseOver(event, this);
+            this.plugin.viewer.scene.canvas.canvas.dispatchEvent(new MouseEvent('mouseover', event));
         } : null;
 
         const onMouseLeave = cfg.onMouseLeave ? (event) => {
             cfg.onMouseLeave(event, this);
+            this.plugin.viewer.scene.canvas.canvas.dispatchEvent(new MouseEvent('mouseleave', event));
         } : null;
+
+        const onMouseDown = (event) => {
+            this.plugin.viewer.scene.canvas.canvas.dispatchEvent(new MouseEvent('mousedown', event));
+        } ;
+
+        const onMouseUp =  (event) => {
+            this.plugin.viewer.scene.canvas.canvas.dispatchEvent(new MouseEvent('mouseup', event));
+        };
+
+        const onMouseMove =  (event) => {
+            this.plugin.viewer.scene.canvas.canvas.dispatchEvent(new MouseEvent('mousemove', event));
+        };
 
         const onContextMenu = cfg.onContextMenu ? (event) => {
             cfg.onContextMenu(event, this);
@@ -82,6 +96,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -91,6 +108,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -102,6 +122,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -113,6 +136,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -124,6 +150,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -135,6 +164,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -146,6 +178,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -157,6 +192,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -168,6 +206,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -179,6 +220,9 @@ class DistanceMeasurement extends Component {
             onMouseOver,
             onMouseLeave,
             onMouseWheel,
+            onMouseDown,
+            onMouseUp,
+            onMouseMove,
             onContextMenu
         });
 
@@ -197,6 +241,7 @@ class DistanceMeasurement extends Component {
         this._zAxisVisible = false;
         this._axisEnabled = true;
         this._labelsVisible = false;
+        this._labelsOnWires = false;
         this._clickable = false;
 
         this._originMarker.on("worldPos", (value) => {
@@ -256,6 +301,7 @@ class DistanceMeasurement extends Component {
         this.yAxisVisible = cfg.yAxisVisible;
         this.zAxisVisible = cfg.zAxisVisible;
         this.labelsVisible = cfg.labelsVisible;
+        this.labelsOnWires = cfg.labelsOnWires;
     }
 
     _update() {
@@ -307,7 +353,7 @@ class DistanceMeasurement extends Component {
 
         if (this._sectionPlanesDirty) {
 
-            if (this._isSliced(this._wp)) {
+            if (this._isSliced(this._originWorld) || this._isSliced(this._targetWorld)) {
                 this._xAxisLabel.setCulled(true);
                 this._yAxisLabel.setCulled(true);
                 this._zAxisLabel.setCulled(true);
@@ -407,9 +453,19 @@ class DistanceMeasurement extends Component {
 
                 this._lengthLabel.setPosOnWire(cp[0], cp[1], cp[6], cp[7]);
 
-                this._xAxisLabel.setPosOnWire(cp[0], cp[1], cp[2], cp[3]);
-                this._yAxisLabel.setPosOnWire(cp[2], cp[3], cp[4], cp[5]);
-                this._zAxisLabel.setPosOnWire(cp[4], cp[5], cp[6], cp[7]);
+                if (this.labelsOnWires) {
+                    this._xAxisLabel.setPosOnWire(cp[0], cp[1], cp[2], cp[3]);
+                    this._yAxisLabel.setPosOnWire(cp[2], cp[3], cp[4], cp[5]);
+                    this._zAxisLabel.setPosOnWire(cp[4], cp[5], cp[6], cp[7]);
+                } else {
+                    const labelOffset = 35;
+                    let currentLabelOffset = labelOffset;
+                    this._xAxisLabel.setPosOnWire(cp[0], cp[1] + currentLabelOffset, cp[6], cp[7] + currentLabelOffset);
+                    currentLabelOffset += labelOffset;
+                    this._yAxisLabel.setPosOnWire(cp[0], cp[1] + currentLabelOffset, cp[6], cp[7] + currentLabelOffset);
+                    currentLabelOffset += labelOffset;
+                    this._zAxisLabel.setPosOnWire(cp[0], cp[1] + currentLabelOffset, cp[6], cp[7] + currentLabelOffset);
+                }
 
                 const tilde = this._approximate ? " ~ " : " = ";
 
@@ -422,9 +478,15 @@ class DistanceMeasurement extends Component {
 
                 const labelMinAxisLength = this.plugin.labelMinAxisLength;
 
-                this._xAxisLabelCulled = (xAxisCanvasLength < labelMinAxisLength);
-                this._yAxisLabelCulled = (yAxisCanvasLength < labelMinAxisLength);
-                this._zAxisLabelCulled = (zAxisCanvasLength < labelMinAxisLength);
+                if (this.labelsOnWires){
+                    this._xAxisLabelCulled = (xAxisCanvasLength < labelMinAxisLength);
+                    this._yAxisLabelCulled = (yAxisCanvasLength < labelMinAxisLength);
+                    this._zAxisLabelCulled = (zAxisCanvasLength < labelMinAxisLength);
+                } else {
+                    this._xAxisLabelCulled = false;
+                    this._yAxisLabelCulled = false;
+                    this._zAxisLabelCulled = false;
+                }
 
                 if (!this._xAxisLabelCulled) {
                     this._xAxisLabel.setText(tilde + Math.abs((this._targetWorld[0] - this._originWorld[0]) * scale).toFixed(2) + unitAbbrev);
@@ -823,6 +885,25 @@ class DistanceMeasurement extends Component {
      */
     get labelsVisible() {
         return this._labelsVisible;
+    }
+
+    /**
+     * Sets if labels should be positioned on the wires.
+     *
+     * @type {Boolean}
+     */
+    set labelsOnWires(value) {
+        value = value !== undefined ? Boolean(value) : this.plugin.defaultLabelsOnWires;
+        this._labelsOnWires = value;
+    }
+
+    /**
+     * Gets if labels should be positioned on the wires.
+     *
+     * @type {Boolean}
+     */
+    get labelsOnWires() {
+        return this._labelsOnWires;
     }
 
     /**

@@ -64,8 +64,8 @@
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-storeyviewsplugin">plugins/StoreyViewsPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/StoreyViewsPlugin/Storey.js~Storey.html">Storey</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/StoreyViewsPlugin/StoreyMap.js~StoreyMap.html">StoreyMap</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/StoreyViewsPlugin/StoreyViewsPlugin.js~StoreyViewsPlugin.html">StoreyViewsPlugin</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-IFCStoreyPlanObjectStates">IFCStoreyPlanObjectStates</a></span></span></li>
-<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-treeviewplugin">plugins/TreeViewPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/TreeViewPlugin.js~TreeViewPlugin.html">TreeViewPlugin</a></span></span></li>
+<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-treeviewplugin">plugins/TreeViewPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/RenderService.js~RenderService.html">RenderService</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/TreeViewPlugin.js~TreeViewPlugin.html">TreeViewPlugin</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-interface">I</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/TreeViewNode.js~TreeViewNode.html">TreeViewNode</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-viewcullplugin">plugins/ViewCullPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/ViewCullPlugin/ViewCullPlugin.js~ViewCullPlugin.html">ViewCullPlugin</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-webifcloaderplugin">plugins/WebIFCLoaderPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/WebIFCLoaderPlugin/WebIFCDefaultDataSource.js~WebIFCDefaultDataSource.html">WebIFCDefaultDataSource</a></span></span></li>
@@ -174,9 +174,12 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/geometry/VBOGeometry.js~VBOGeometry.html">VBOGeometry</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-geometry-builders">viewer/scene/geometry/builders</a><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildBoxGeometry">buildBoxGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildBoxLinesGeometry">buildBoxLinesGeometry</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildBoxLinesGeometryFromAABB">buildBoxLinesGeometryFromAABB</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildCylinderGeometry">buildCylinderGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildGridGeometry">buildGridGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildPlaneGeometry">buildPlaneGeometry</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildPolylineGeometry">buildPolylineGeometry</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildPolylineGeometryFromCurve">buildPolylineGeometryFromCurve</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildSphereGeometry">buildSphereGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildTorusGeometry">buildTorusGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildVectorTextGeometry">buildVectorTextGeometry</a></span></span></li>
@@ -218,9 +221,11 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/model/SceneModelTextureSet.js~SceneModelTextureSet.html">SceneModelTextureSet</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/model/SceneModelTransform.js~SceneModelTransform.html">SceneModelTransform</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/model/VBOSceneModel.js~VBOSceneModel.html">VBOSceneModel</a></span></span></li>
-<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-model-dtx-triangles">viewer/scene/model/dtx/triangles</a><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-uniquifyPositions">uniquifyPositions</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-uniquifyPositions">uniquifyPositions</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-rebucketPositions">rebucketPositions</a></span></span></li>
+<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-model-dtx-lines">viewer/scene/model/dtx/lines</a><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-rebucketPositions">rebucketPositions</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-dataTextureRamStats">dataTextureRamStats</a></span></span></li>
+<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-model-dtx-triangles-lib">viewer/scene/model/dtx/triangles/lib</a><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-dataTextureRamStats">dataTextureRamStats</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-nodes">viewer/scene/nodes</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/nodes/Node.js~Node.html">Node</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-paths">viewer/scene/paths</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/paths/CubicBezierCurve.js~CubicBezierCurve.html">CubicBezierCurve</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/paths/Curve.js~Curve.html">Curve</a></span></span></li>
@@ -230,6 +235,7 @@
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-postfx">viewer/scene/postfx</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/postfx/SAO.js~SAO.html">SAO</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-scene">viewer/scene/scene</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/scene/Scene.js~Scene.html">Scene</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-sectionplane">viewer/scene/sectionPlane</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/sectionPlane/SectionPlane.js~SectionPlane.html">SectionPlane</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/sectionPlane/SectionPlaneCache.js~SectionPlaneCache.html">SectionPlaneCache</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-skybox">viewer/scene/skybox</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/skybox/Skybox.js~Skybox.html">Skybox</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-utils">viewer/scene/utils</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/utils/FileLoader.js~FileLoader.html">FileLoader</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/utils/Loader.js~Loader.html">Loader</a></span></span></li>
@@ -312,21 +318,9 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
 
         this._currentAngleMeasurement = null;
 
-        const markerDiv = document.createElement(&apos;div&apos;);
-        const canvas = this.scene.canvas.canvas;
-        canvas.parentNode.insertBefore(markerDiv, canvas);
+        // init markerDiv element (think about making its style configurable)
+        this._initMarkerDiv()
 
-        markerDiv.style.background = &quot;black&quot;;
-        markerDiv.style.border = &quot;2px solid blue&quot;;
-        markerDiv.style.borderRadius = &quot;10px&quot;;
-        markerDiv.style.width = &quot;5px&quot;;
-        markerDiv.style.height = &quot;5px&quot;;
-        markerDiv.style.margin = &quot;-200px -200px&quot;;
-        markerDiv.style.zIndex = &quot;100&quot;;
-        markerDiv.style.position = &quot;absolute&quot;;
-        markerDiv.style.pointerEvents = &quot;none&quot;;
-
-        this.markerDiv = markerDiv;
         this._onMouseHoverSurface = null;
         this._onHoverNothing = null;
         this._onPickedNothing = null;
@@ -338,6 +332,35 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         this._snapping = cfg.snapping !== false;
 
         this._attachPlugin(angleMeasurementsPlugin, cfg);
+    }
+
+    _initMarkerDiv() {
+        const markerDiv = document.createElement(&apos;div&apos;);
+        markerDiv.setAttribute(&apos;id&apos;, &apos;myMarkerDiv&apos;);
+        const canvas = this.scene.canvas.canvas;
+        canvas.parentNode.insertBefore(markerDiv, canvas);
+
+        markerDiv.style.background = &quot;black&quot;;
+        markerDiv.style.border = &quot;2px solid blue&quot;;
+        markerDiv.style.borderRadius = &quot;10px&quot;;
+        markerDiv.style.width = &quot;5px&quot;;
+        markerDiv.style.height = &quot;5px&quot;;
+        markerDiv.style.top = &quot;-200px&quot;;
+        markerDiv.style.left = &quot;-200px&quot;;
+        markerDiv.style.margin = &quot;0 0&quot;;
+        markerDiv.style.zIndex = &quot;100&quot;;
+        markerDiv.style.position = &quot;absolute&quot;;
+        markerDiv.style.pointerEvents = &quot;none&quot;;
+
+        this.markerDiv = markerDiv;
+    }
+
+    _destroyMarkerDiv() {
+        if (this._markerDiv) {
+            const element = document.getElementById(&apos;myMarkerDiv&apos;)
+            element.parentNode.removeChild(element)
+            this._markerDiv = null
+        }
     }
 
     _attachPlugin(angleMeasurementsPlugin, cfg = {}) {
@@ -405,6 +428,9 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         if (this._active) {
             return;
         }
+        if (!this.markerDiv) {
+            this._initMarkerDiv() // if the marker is destroyed after deactivation, we recreate it
+        }
         const angleMeasurementsPlugin = this.angleMeasurementsPlugin;
         const scene = this.scene;
         const input = scene.input;
@@ -413,7 +439,7 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         const cameraControl = this.angleMeasurementsPlugin.viewer.cameraControl;
         const pointerLens = this.pointerLens;
         let mouseHovering = false;
-        let mouseHoverEntity = false;
+        let hoveredEntity = null;
         let lastMouseCanvasX = 0;
         let lastMouseCanvasY = 0;
         const mouseWorldPos = math.vec3();
@@ -427,8 +453,8 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                 if (event.snappedToVertex || event.snappedToEdge) {
                     if (pointerLens) {
                         pointerLens.visible = true;
-                        pointerLens.centerPos = event.cursorPos || event.canvasPos;
-                        pointerLens.cursorPos = event.canvasPos;
+                        pointerLens.canvasPos = event.canvasPos;
+                        pointerLens.snappedCanvasPos = event.snappedCanvasPos || event.canvasPos;
                         pointerLens.snapped = true;
                     }
                     this.markerDiv.style.background = &quot;greenyellow&quot;;
@@ -436,21 +462,27 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                 } else {
                     if (pointerLens) {
                         pointerLens.visible = true;
-                        pointerLens.centerPos = event.cursorPos || event.canvasPos;
-                        pointerLens.cursorPos = event.canvasPos;
+                        pointerLens.canvasPos =  event.canvasPos;
+                        pointerLens.snappedCanvasPos = event.canvasPos;
                         pointerLens.snapped = false;
                     }
                     this.markerDiv.style.background = &quot;pink&quot;;
                     this.markerDiv.style.border = &quot;2px solid red&quot;;
                 }
+                const canvasPos = event.snappedCanvasPos || event.canvasPos;
                 mouseHovering = true;
-                mouseHoverEntity = event.entity;
+                hoveredEntity = event.entity;
                 mouseWorldPos.set(event.worldPos);
-                mouseHoverCanvasPos.set(event.canvasPos);
+                mouseHoverCanvasPos.set(canvasPos);
                 switch (this._mouseState) {
                     case MOUSE_FINDING_ORIGIN:
-                        this.markerDiv.style.marginLeft = `${event.canvasPos[0] - 5}px`;
-                        this.markerDiv.style.marginTop = `${event.canvasPos[1] - 5}px`;
+                        const canvasBoundRect = canvas.getBoundingClientRect();
+                        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                        const canvasLeftEdge = canvasBoundRect.left + scrollLeft;
+                        const canvasTopEdge = canvasBoundRect.top + scrollTop;
+                        this.markerDiv.style.left = `${canvasLeftEdge + canvasPos[0] - 5}px`;
+                        this.markerDiv.style.top = `${canvasTopEdge + canvasPos[1] - 5}px`;
                         break;
                     case MOUSE_FINDING_CORNER:
                         if (this._currentAngleMeasurement) {
@@ -459,9 +491,10 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                             this._currentAngleMeasurement.cornerVisible = true;
                             this._currentAngleMeasurement.angleVisible = false;
                             this._currentAngleMeasurement.corner.worldPos = event.worldPos;
+                            this._currentAngleMeasurement.corner.entity = event.entity;
                         }
-                        this.markerDiv.style.marginLeft = `-10000px`;
-                        this.markerDiv.style.marginTop = `-10000px`;
+                        this.markerDiv.style.left = `-10000px`;
+                        this.markerDiv.style.top = `-10000px`;
                         canvas.style.cursor = &quot;pointer&quot;;
                         break;
                     case MOUSE_FINDING_TARGET:
@@ -470,9 +503,10 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                             this._currentAngleMeasurement.targetVisible = true;
                             this._currentAngleMeasurement.angleVisible = true;
                             this._currentAngleMeasurement.target.worldPos = event.worldPos;
+                            this._currentAngleMeasurement.target.entity = event.entity;
                         }
-                        this.markerDiv.style.marginLeft = `-10000px`;
-                        this.markerDiv.style.marginTop = `-10000px`;
+                        this.markerDiv.style.left = `-10000px`;
+                        this.markerDiv.style.top = `-10000px`;
                         canvas.style.cursor = &quot;pointer&quot;;
                         break;
                 }
@@ -500,15 +534,12 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                         this._currentAngleMeasurement = this.angleMeasurementsPlugin.createMeasurement({
                             id: math.createUUID(),
                             origin: {
-                                entity: mouseHoverEntity,
                                 worldPos: mouseWorldPos
                             },
                             corner: {
-                                entity: mouseHoverEntity,
                                 worldPos: mouseWorldPos
                             },
                             target: {
-                                entity: mouseHoverEntity,
                                 worldPos: mouseWorldPos
                             },
                             approximate: true
@@ -520,6 +551,7 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                         this._currentAngleMeasurement.targetWireVisible = false;
                         this._currentAngleMeasurement.targetVisible = false;
                         this._currentAngleMeasurement.angleVisible = false;
+                        this._currentAngleMeasurement.origin.entity = hoveredEntity;
                         this._mouseState = MOUSE_FINDING_CORNER;
                         this.angleMeasurementsPlugin.fire(&quot;measurementStart&quot;, this._currentAngleMeasurement);
                     }
@@ -529,11 +561,13 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                         this._currentAngleMeasurement.targetWireVisible = false;
                         this._currentAngleMeasurement.targetVisible = true;
                         this._currentAngleMeasurement.angleVisible = true;
+                        this._currentAngleMeasurement.corner.entity = hoveredEntity;
                         this._mouseState = MOUSE_FINDING_TARGET;
                     } else {
                         if (this._currentAngleMeasurement) {
                             this._currentAngleMeasurement.destroy();
                             this._currentAngleMeasurement = null;
+                            hoveredEntity = null;
                             this._mouseState = MOUSE_FINDING_ORIGIN
                             this.angleMeasurementsPlugin.fire(&quot;measurementCancel&quot;, this._currentAngleMeasurement);
                         }
@@ -543,7 +577,9 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                     if (mouseHovering) {
                         this._currentAngleMeasurement.targetVisible = true;
                         this._currentAngleMeasurement.angleVisible = true;
+                        this._currentAngleMeasurement.target.entity = hoveredEntity;
                         this._currentAngleMeasurement.clickable = true;
+                        hoveredEntity = null;
                         this.angleMeasurementsPlugin.fire(&quot;measurementEnd&quot;, this._currentAngleMeasurement);
                         this._currentAngleMeasurement = null;
                         this._mouseState = MOUSE_FINDING_ORIGIN;
@@ -551,6 +587,7 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                         if (this._currentAngleMeasurement) {
                             this._currentAngleMeasurement.destroy();
                             this._currentAngleMeasurement = null;
+                            hoveredEntity = null;
                             this._mouseState = MOUSE_FINDING_ORIGIN;
                             this.angleMeasurementsPlugin.fire(&quot;measurementCancel&quot;, this._currentAngleMeasurement);
                         }
@@ -566,12 +603,12 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                 mouseHovering = false;
                 if (pointerLens) {
                     pointerLens.visible = true;
-                    pointerLens.centerPos = event.cursorPos;
-                    pointerLens.cursorPos = event.cursorPos;
+                    pointerLens.pointerPos = event.canvasPos;
+                    pointerLens.snappedCanvasPos = event.snappedCanvasPos || event.canvasPos;
                     pointerLens.snapped = false;
                 }
-                this.markerDiv.style.marginLeft = `-100px`;
-                this.markerDiv.style.marginTop = `-100px`;
+                this.markerDiv.style.left = `-100px`;
+                this.markerDiv.style.top = `-100px`;
                 if (this._currentAngleMeasurement) {
                     switch (this._mouseState) {
                         case MOUSE_FINDING_ORIGIN:
@@ -608,6 +645,9 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         if (this.pointerLens) {
             this.pointerLens.visible = false;
         }
+        if (this.markerDiv) {
+            this._destroyMarkerDiv()
+        }
         this.reset();
         const canvas = this.scene.canvas.canvas;
         canvas.removeEventListener(&quot;mousedown&quot;, this._onMouseDown);
@@ -632,6 +672,10 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         if (!this._active) {
             return;
         }
+
+        this._destroyMarkerDiv()
+        this._initMarkerDiv()
+
         if (this._currentAngleMeasurement) {
             this._currentAngleMeasurement.destroy();
             this._currentAngleMeasurement = null;

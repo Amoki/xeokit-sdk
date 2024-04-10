@@ -8,7 +8,7 @@
     <link href='https://fonts.googleapis.com/css?family=Exo+2:400,800,900,700,600,500|Roboto:100,300,400,500,700,900'
           rel='stylesheet' type='text/css'>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"></script>
-    <link href='http://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet' type='text/css'>
+    
 
     <style>
 
@@ -247,7 +247,7 @@
 <div class="page-title" id="page-title"></div>
 <div class="viewSourceButton" id="viewSourceButton"><i class="fas fa-2x fa-code"></i></div>
 <div class="content-overlay" id="viewer-overlay"></div>
-<iframe class="content-container" id="viewer" src="../../default.html"></iframe>
+<iframe class="content-container" id="viewer" src="../default.html"></iframe>
 <div class="slideout-sidebar">
     <div id="index"><h1><a href="http://xeokit.io">xeokit</a> / <a href="../">Examples</a> / Measurement</h1></div>
 </div>
@@ -260,7 +260,9 @@
 
             "# Creating distance measurements with mouse",
             ["distance_createWithMouse_snapping", "Click with mouse on model to create distance measurements, snapping enabled"],
+            ["distance_createWithMouse_snapping_offsetCanvas", "Click with mouse on model to create distance measurements, snapping enabled, offset canvas"],
             ["distance_createWithMouse_snapping_Lyon", "Click with mouse on model to create distance measurements, snapping enabled"],
+            ["distance_createWithMouse_labelsNotOnWires", "Click with mouse on model to create distance measurements, snapping enabled, labels one below the other"],
 
             "# Creating distance measurements with mouse, snapping disabled",
             ["distance_createWithMouse_nosnapping", "Click with mouse on model to create distance measurements, snapping disabled"],
@@ -275,6 +277,7 @@
 
             "# Creating angle measurements with mouse, snapping enabled",
             ["angle_createWithMouse_snapping", "Click with mouse on model to create angle measurements, snapping enabled"],
+            ["angle_createWithMouse_snapping_offsetCanvas", "Click with mouse on model to create angle measurements, snapping enabled, offset canvas"],
 
             "# Creating angle measurements with mouse, snapping disabled",
             ["angle_createWithMouse_nosnapping", "Click with mouse on model to create angle measurements, snapping disabled"],
@@ -283,9 +286,13 @@
             ["angle_modelWithMeasurements", "Creating angle measurements programmatically"]
         ],
 
-        "Experimental": [
-            "# Experimental measurement examples",
-            ["experimental_distance_createWithMouse_vectorText", "Click on objects to create distance measurements with vector text"]
+        "Tests": [
+
+            "# Tests using programmatically created SceneModels",
+            ["distance_createWithMouse_snapping_dtx_batching", "Click to measure distances, snapping enabled, data textures"],
+            ["distance_createWithMouse_snapping_dtx_instancing", "Click to measure distances, snapping enabled, data textures"],
+            ["distance_createWithMouse_snapping_vbo_batching", "Click to measure distances, snapping enabled, VBOs"],
+            ["distance_createWithMouse_snapping_vbo_instancing", "Click to measure distances, snapping enabled, VBOs"]
         ]
     };
 

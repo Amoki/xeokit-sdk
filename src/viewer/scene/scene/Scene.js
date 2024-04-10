@@ -343,6 +343,11 @@ class Scene extends Component {
      * @param {String} [cfg.lodEnabled]  ID of an existing HTML canvas for the {@link Scene#canvas} - either this or canvasElement is mandatory. When both values are given, the element reference is always preferred to the ID.
      * @param {HTMLCanvasElement} [cfg.canvasElement] Reference of an existing HTML canvas for the {@link Scene#canvas} - either this or canvasId is mandatory. When both values are given, the element reference is always preferred to the ID.
      * @param {HTMLElement} [cfg.keyboardEventsElement] Optional reference to HTML element on which key events should be handled. Defaults to the HTML Document.
+     * @param {number} [cfg.numCachedSectionPlanes=0] Enhances the efficiency of SectionPlane creation by proactively allocating Viewer resources for a specified quantity
+     * of SectionPlanes. Introducing this parameter streamlines the initial creation speed of SectionPlanes, particularly up to the designated quantity. This parameter internally
+     * configures renderer logic for the specified number of SectionPlanes, eliminating the need for setting up logic with each SectionPlane creation and thereby enhancing
+     * responsiveness. It is important to consider that each SectionPlane imposes rendering performance, so it is recommended to set this value to a quantity that aligns with
+     * your expected usage.
      * @throws {String} Throws an exception when both canvasId or canvasElement are missing or they aren't pointing to a valid HTMLCanvasElement.
      */
     constructor(viewer, cfg = {}) {
@@ -354,6 +359,11 @@ class Scene extends Component {
         if (!(canvas instanceof HTMLCanvasElement)) {
             throw "Mandatory config expected: valid canvasId or canvasElement";
         }
+
+        /**
+         * @type {{[key: string]: {wrapperFunc: Function, tickSubId: string}}}
+         */
+        this._tickifiedFunctions = {};
 
         const transparent = (!!cfg.transparent);
         const alphaDepthMask = (!!cfg.alphaDepthMask);
@@ -628,20 +638,23 @@ class Scene extends Component {
 
             this.clippingCaps = false;
 
+            this._numCachedSectionPlanes = 0;
+
             let hash = null;
 
             this.getHash = function () {
                 if (hash) {
                     return hash;
                 }
+                const numAllocatedSectionPlanes = this.getNumAllocatedSectionPlanes();
                 const sectionPlanes = this.sectionPlanes;
-                if (sectionPlanes.length === 0) {
+                if (numAllocatedSectionPlanes === 0) {
                     return this.hash = ";";
                 }
                 let sectionPlane;
 
                 const hashParts = [];
-                for (let i = 0, len = sectionPlanes.length; i < len; i++) {
+                for (let i = 0, len = numAllocatedSectionPlanes; i < len; i++) {
                     sectionPlane = sectionPlanes[i];
                     hashParts.push("cp");
                 }
@@ -664,7 +677,23 @@ class Scene extends Component {
                     }
                 }
             };
+
+            this.setNumCachedSectionPlanes = function (numCachedSectionPlanes) {
+                this._numCachedSectionPlanes = numCachedSectionPlanes;
+                hash = null;
+            }
+
+            this.getNumCachedSectionPlanes = function () {
+                return this._numCachedSectionPlanes;
+            }
+
+            this.getNumAllocatedSectionPlanes = function () {
+                const num = this.sectionPlanes.length;
+                return (num > this._numCachedSectionPlanes) ? num : this._numCachedSectionPlanes;
+            };
         })();
+
+        this._sectionPlanesState.setNumCachedSectionPlanes(cfg.numCachedSectionPlanes || 0);
 
         this._lightsState = new (function () {
 
@@ -1082,6 +1111,12 @@ class Scene extends Component {
         }
     }
 
+    _deRegisterVisibleObject(entity) {
+        delete this.visibleObjects[entity.id];
+        this._numVisibleObjects--;
+        this._visibleObjectIds = null; // Lazy regenerate
+    }
+
     _objectXRayedUpdated(entity, notify = true) {
         if (entity.xrayed) {
             if (ASSERT_OBJECT_STATE_UPDATE && this.xrayedObjects[entity.id]) {
@@ -1104,7 +1139,13 @@ class Scene extends Component {
         }
     }
 
-    _objectHighlightedUpdated(entity, notify = true) {
+    _deRegisterXRayedObject(entity) {
+        delete this.xrayedObjects[entity.id];
+        this._numXRayedObjects--;
+        this._xrayedObjectIds = null; // Lazy regenerate
+    }
+
+    _objectHighlightedUpdated(entity) {
         if (entity.highlighted) {
             if (ASSERT_OBJECT_STATE_UPDATE && this.highlightedObjects[entity.id]) {
                 console.error("Redundant object highlight update (highlighted=true)");
@@ -1121,9 +1162,12 @@ class Scene extends Component {
             this._numHighlightedObjects--;
         }
         this._highlightedObjectIds = null; // Lazy regenerate
-        if (notify) {
-            this.fire("objectHighlighted", entity, true);
-        }
+    }
+
+    _deRegisterHighlightedObject(entity) {
+        delete this.highlightedObjects[entity.id];
+        this._numHighlightedObjects--;
+        this._highlightedObjectIds = null; // Lazy regenerate
     }
 
     _objectSelectedUpdated(entity, notify = true) {
@@ -1148,6 +1192,13 @@ class Scene extends Component {
         }
     }
 
+    _deRegisterSelectedObject(entity) {
+        delete this.selectedObjects[entity.id];
+        this._numSelectedObjects--;
+        this._selectedObjectIds = null; // Lazy regenerate
+    }
+
+
     _objectColorizeUpdated(entity, colorized) {
         if (colorized) {
             this.colorizedObjects[entity.id] = entity;
@@ -1156,6 +1207,12 @@ class Scene extends Component {
             delete this.colorizedObjects[entity.id];
             this._numColorizedObjects--;
         }
+        this._colorizedObjectIds = null; // Lazy regenerate
+    }
+
+    _deRegisterColorizedObject(entity) {
+        delete this.colorizedObjects[entity.id];
+        this._numColorizedObjects--;
         this._colorizedObjectIds = null; // Lazy regenerate
     }
 
@@ -1170,6 +1227,12 @@ class Scene extends Component {
         this._opacityObjectIds = null; // Lazy regenerate
     }
 
+    _deRegisterOpacityObject(entity) {
+        delete this.opacityObjects[entity.id];
+        this._numOpacityObjects--;
+        this._opacityObjectIds = null; // Lazy regenerate
+    }
+
     _objectOffsetUpdated(entity, offset) {
         if (!offset || offset[0] === 0 && offset[1] === 0 && offset[2] === 0) {
             this.offsetObjects[entity.id] = entity;
@@ -1178,6 +1241,12 @@ class Scene extends Component {
             delete this.offsetObjects[entity.id];
             this._numOffsetObjects--;
         }
+        this._offsetObjectIds = null; // Lazy regenerate
+    }
+
+    _deRegisterOffsetObject(entity) {
+        delete this.offsetObjects[entity.id];
+        this._numOffsetObjects--;
         this._offsetObjectIds = null; // Lazy regenerate
     }
 
@@ -1258,11 +1327,46 @@ class Scene extends Component {
     }
 
     /**
+     * Sets the number of {@link SectionPlane}s for which this Scene pre-caches resources.
+     *
+     * This property enhances the efficiency of SectionPlane creation by proactively allocating and caching Viewer resources for a specified quantity
+     * of SectionPlanes. Introducing this parameter streamlines the initial creation speed of SectionPlanes, particularly up to the designated quantity. This parameter internally
+     * configures renderer logic for the specified number of SectionPlanes, eliminating the need for setting up logic with each SectionPlane creation and thereby enhancing
+     * responsiveness. It is important to consider that each SectionPlane impacts rendering performance, so it is recommended to set this value to a quantity that aligns with
+     * your expected usage.
+     *
+     * Default is ````0````.
+     */
+    set numCachedSectionPlanes(numCachedSectionPlanes) {
+        numCachedSectionPlanes = numCachedSectionPlanes || 0;
+        if (this._sectionPlanesState.getNumCachedSectionPlanes() !== numCachedSectionPlanes) {
+            this._sectionPlanesState.setNumCachedSectionPlanes(numCachedSectionPlanes);
+            this._needRecompile = true;
+            this.glRedraw();
+        }
+    }
+
+    /**
+     * Gets the number of {@link SectionPlane}s for which this Scene pre-caches resources.
+     *
+     * This property enhances the efficiency of SectionPlane creation by proactively allocating and caching Viewer resources for a specified quantity
+     * of SectionPlanes. Introducing this parameter streamlines the initial creation speed of SectionPlanes, particularly up to the designated quantity. This parameter internally
+     * configures renderer logic for the specified number of SectionPlanes, eliminating the need for setting up logic with each SectionPlane creation and thereby enhancing
+     * responsiveness. It is important to consider that each SectionPlane impacts rendering performance, so it is recommended to set this value to a quantity that aligns with
+     * your expected usage.
+     *
+     * Default is ````0````.
+     *
+     * @returns {number} The number of {@link SectionPlane}s for which this Scene pre-caches resources.
+     */
+    get numCachedSectionPlanes() {
+        return this._sectionPlanesState.getNumCachedSectionPlanes();
+    }
+
+    /**
      * Sets whether physically-based rendering is enabled.
      *
      * Default is ````false````.
-     *
-     * @returns {Boolean} True if quality rendering is enabled.
      */
     set pbrEnabled(pbrEnabled) {
         this._pbrEnabled = !!pbrEnabled;
@@ -1412,6 +1516,18 @@ class Scene extends Component {
         }
 
         this._saveAmbientColor();
+    }
+
+
+    /**
+     * @private
+     */
+    compile() {
+        if (this._needRecompile) {
+            this._recompile();
+            this._renderer.imageDirty();
+            this._needRecompile = false;
+        }
     }
 
     _recompile() {
@@ -2168,6 +2284,9 @@ class Scene extends Component {
      * @param {Number[]} [params.matrix] 4x4 transformation matrix to define the World-space ray origin and direction, as an alternative to ````origin```` and ````direction````.
      * @param {String[]} [params.includeEntities] IDs of {@link Entity}s to restrict picking to. When given, ignores {@link Entity}s whose IDs are not in this list.
      * @param {String[]} [params.excludeEntities] IDs of {@link Entity}s to ignore. When given, will pick *through* these {@link Entity}s, as if they were not there.
+     * @param {Number} [params.snapRadius=30] The snap radius, in canvas pixels
+     * @param {boolean} [params.snapToVertex=true] Whether to snap to vertex.
+     * @param {boolean} [params.snapToEdge=true] Whether to snap to edge.
      * @param {PickResult} [pickResult] Holds the results of the pick attempt. Will use the Scene's singleton PickResult if you don't supply your own.
      * @returns {PickResult} Holds results of the pick attempt, returned when an {@link Entity} is picked, else null. See method comments for description.
      */
@@ -2202,14 +2321,25 @@ class Scene extends Component {
             this._needRecompile = false;
         }
 
-        pickResult = this._renderer.pick(params, pickResult);
+        if (params.snapToEdge || params.snapToVertex) {
+            pickResult = this._renderer.snapPick(
+                params.canvasPos,
+                params.snapRadius || 30,
+                params.snapToVertex,
+                params.snapToEdge,
+                pickResult
+            );
+        } else {
+            pickResult = this._renderer.pick(params, pickResult);
+        }
 
         if (pickResult) {
             if (pickResult.entity && pickResult.entity.fire) {
-                pickResult.entity.fire("picked", pickResult); // TODO: PerformanceModelNode doesn't fire events
+                pickResult.entity.fire("picked", pickResult); // TODO: SceneModelEntity doesn't fire events
             }
-            return pickResult;
         }
+
+        return pickResult;
     }
 
     /**
@@ -2218,8 +2348,13 @@ class Scene extends Component {
      * @param {Number} [params.snapRadius=30] The snap radius, in canvas pixels
      * @param {boolean} [params.snapToVertex=true] Whether to snap to vertex.
      * @param {boolean} [params.snapToEdge=true] Whether to snap to edge.
+     * @deprecated
      */
     snapPick(params) {
+        if (undefined === this._warnSnapPickDeprecated) {
+            this._warnSnapPickDeprecated = true;
+            this.warn("Scene.snapPick() is deprecated since v2.4.2 - use Scene.pick() instead")
+        }
         return this._renderer.snapPick(
             params.canvasPos,
             params.snapRadius || 30,
@@ -2579,6 +2714,63 @@ class Scene extends Component {
             }
         }
         return changed;
+    }
+
+    /**
+     * This method will "tickify" the provided `cb` function.
+     *
+     * This means, the function will be wrapped so:
+     *
+     * - it runs time-aligned to scene ticks
+     * - it runs maximum once per scene-tick
+     *
+     * @param {Function} cb The function to tickify
+     * @returns {Function}
+     */
+    tickify(cb) {
+        const cbString = cb.toString();
+
+        /**
+         * Check if the function is already tickified, and if so return the cached one.
+         */
+        if (cbString in this._tickifiedFunctions) {
+            return this._tickifiedFunctions[cbString].wrapperFunc;
+        }
+
+        let alreadyRun = 0;
+        let needToRun = 0;
+
+        let lastArgs;
+
+        /**
+         * The provided `cb` function is replaced with a "set-dirty" function
+         *
+         * @type {Function}
+         */
+        const wrapperFunc = function (...args) {
+            lastArgs = args;
+            needToRun++;
+        };
+
+        /**
+         * An each scene tick, if the "dirty-flag" is set, run the `cb` function.
+         *
+         * This will make it run time-aligned to the scene tick.
+         */
+        const tickSubId = this.on("tick", () => {
+            const tmp = needToRun;
+            if (tmp > alreadyRun) {
+                alreadyRun = tmp;
+                cb(...lastArgs);
+            }
+        });
+
+        /**
+         * And, store the list of subscribers.
+         */
+        this._tickifiedFunctions[cbString] = {tickSubId, wrapperFunc};
+
+        return wrapperFunc;
     }
 
     /**

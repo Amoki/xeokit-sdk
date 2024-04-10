@@ -3,7 +3,7 @@ import {CameraFlightAnimation} from "./scene/camera/CameraFlightAnimation.js";
 import {CameraControl} from "./scene/CameraControl/CameraControl.js";
 import {MetaScene} from "./metadata/MetaScene.js";
 import {LocaleService} from "./localization/LocaleService.js";
-import html2canvas from 'html2canvas/dist/html2canvas.esm.js';
+import html2canvas from '../../node_modules/html2canvas/dist/html2canvas.esm.js';
 
 /**
  * The 3D Viewer at the heart of the xeokit SDK.
@@ -57,6 +57,11 @@ class Viewer {
      * store geometry on the GPU for triangle meshes that don't have textures. This gives a much lower memory footprint for these types of model element. This mode may not perform well on low-end GPUs that are optimized
      * to use textures to hold geometry data. Works great on most medium/high-end GPUs found in desktop computers, including the nVIDIA and Intel HD chipsets. Set this false to use the default vertex buffer object (VBO)
      * mode for storing geometry, which is the standard technique used in most graphics engines, and will work adequately on most low-end GPUs.
+     * @param {number} [cfg.numCachedSectionPlanes=0] Enhances the efficiency of SectionPlane creation by proactively allocating Viewer resources for a specified quantity
+     * of SectionPlanes. Introducing this parameter streamlines the initial creation speed of SectionPlanes, particularly up to the designated quantity. This parameter internally
+     * configures renderer logic for the specified number of SectionPlanes, eliminating the need for setting up logic with each SectionPlane creation and thereby enhancing
+     * responsiveness. It is important to consider that each SectionPlane impacts rendering performance, so it is recommended to set this value to a quantity that aligns with
+     * your expected usage.
      */
     constructor(cfg) {
 
@@ -116,7 +121,8 @@ class Viewer {
             lodEnabled: (!!cfg.lodEnabled),
             vfcCulling: (!!cfg.vfcEnabled),
             colorTextureEnabled: (cfg.colorTextureEnabled !== false),
-            dtxEnabled: (!!cfg.dtxEnabled)
+            dtxEnabled: (!!cfg.dtxEnabled),
+            numCachedSectionPlanes: cfg.numCachedSectionPlanes
         });
 
         /**
@@ -345,7 +351,10 @@ class Viewer {
         }
 
         if (!this._snapshotBegun) {
-            this.beginSnapshot();
+            this.beginSnapshot({
+                width,
+                height
+            });
         }
 
         if (!params.includeGizmos) {

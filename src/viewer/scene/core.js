@@ -15,6 +15,7 @@ let lastTime = 0;
 let elapsedTime;
 let totalFPS = 0;
 
+
 /**
  * @private
  */
@@ -100,7 +101,7 @@ function Core() {
      * @param {Function} callback Callback that runs the task.
      * @param {Object} [scope] Scope for the callback.
      */
-    this.scheduleTask = function (callback, scope) {
+    this.scheduleTask = function (callback, scope = null) {
         taskQueue.push(callback);
         taskQueue.push(scope);
     };
@@ -135,8 +136,46 @@ function Core() {
  */
 const core = new Core();
 
-
 const frame = function () {
+    let time = Date.now();
+    elapsedTime = time - lastTime;
+    if (lastTime > 0 && elapsedTime > 0) { // Log FPS stats
+        var newFPS = 1000 / elapsedTime; // Moving average of FPS
+        totalFPS += newFPS;
+        fpsSamples.push(newFPS);
+        if (fpsSamples.length >= numFPSSamples) {
+            totalFPS -= fpsSamples.shift();
+        }
+        stats.frame.fps = Math.round(totalFPS / fpsSamples.length);
+    }
+    for (let id in core.scenes) {
+        core.scenes[id].compile();
+    }
+    runTasks(time);
+    lastTime = time;
+};
+
+function customSetInterval(callback, interval) {
+    let expected = Date.now() + interval;
+    function loop() {
+        const elapsed = Date.now() - expected;
+        callback();
+        expected += interval;
+        setTimeout(loop, Math.max(0, interval - elapsed));
+    }
+    loop();
+    return {
+        cancel: function() {
+            // No need to do anything, setTimeout cannot be directly cancelled
+        }
+    };
+}
+
+customSetInterval(() => {
+    frame();
+}, 100);
+
+const renderFrame = function () {
     let time = Date.now();
     elapsedTime = time - lastTime;
     if (lastTime > 0 && elapsedTime > 0) { // Log FPS stats
@@ -151,9 +190,10 @@ const frame = function () {
     runTasks(time);
     fireTickEvents(time);
     renderScenes();
-    lastTime = time;
-    (window.requestPostAnimationFrame !== undefined) ? window.requestPostAnimationFrame(frame) : requestAnimationFrame(frame);
+    (window.requestPostAnimationFrame !== undefined) ? window.requestPostAnimationFrame(frame) : requestAnimationFrame(renderFrame);
 };
+
+renderFrame();
 
 function runTasks(time) { // Process as many enqueued tasks as we can within the per-frame task budget
     const tasksRun = core.runTasks(time + taskBudget);
@@ -227,7 +267,5 @@ function renderScenes() {
         }
     }
 }
-
-(window.requestPostAnimationFrame !== undefined) ? window.requestPostAnimationFrame(frame) : requestAnimationFrame(frame);
 
 export {core};

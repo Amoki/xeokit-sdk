@@ -20,7 +20,7 @@ export class SceneModelEntity {
     /**
      * @private
      */
-    constructor(model, isObject, id, meshes, flags, aabb, lodCullable) {
+    constructor(model, isObject, id, meshes, flags, lodCullable) {
 
         this._isObject = isObject;
 
@@ -62,9 +62,7 @@ export class SceneModelEntity {
         this.originalSystemId = math.unglobalizeObjectId(model.id, id);
 
         this._flags = flags;
-        this._aabb = aabb;
-        this._worldAABB = math.AABB3(aabb); // Computed from Meshes and SceneModel.matrix
-        this._offsetAABB = math.AABB3(aabb); // TODO - only used for offsets, current disabled
+        this._aabb = math.AABB3();
         this._aabbDirty = true;
 
         this._offset = math.vec3();
@@ -688,24 +686,26 @@ export class SceneModelEntity {
         if (this._isObject) {
             scene._deregisterObject(this);
             if (this.visible) {
-                scene._objectVisibilityUpdated(this, false);
+                scene._deRegisterVisibleObject(this);
             }
             if (this.xrayed) {
-                scene._objectXRayedUpdated(this);
+                scene._deRegisterXRayedObject(this);
             }
             if (this.selected) {
-                scene._objectSelectedUpdated(this);
+                scene._deRegisterSelectedObject(this);
             }
             if (this.highlighted) {
-                scene._objectHighlightedUpdated(this);
+                scene._deRegisterHighlightedObject(this);
+            }
+            if (this._colorizeUpdated) {
+                this.scene._deRegisterColorizedObject(this);
             }
             if (this._opacityUpdated) {
-                this.scene._objectColorizeUpdated(this, false);
+                this.scene._deRegisterOpacityObject(this);
             }
-            if (this._opacityUpdated) {
-                this.scene._objectOpacityUpdated(this, false);
+            if (this._offset && (this._offset[0] !== 0 || this._offset[1] !== 0 || this._offset[2] !== 0)) {
+                this.scene._deRegisterOffsetObject(this);
             }
-            this.scene._objectOffsetUpdated(this, false);
         }
         for (let i = 0, len = this.meshes.length; i < len; i++) {
             this.meshes[i]._destroy();

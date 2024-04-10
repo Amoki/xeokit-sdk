@@ -8,14 +8,13 @@ class Dot {
         this._x = 0;
         this._y = 0;
 
-        this._visible = true;
         this._dot = document.createElement('div');
         this._dot.className += this._dot.className ? ' viewer-ruler-dot' : 'viewer-ruler-dot';
 
         this._dotClickable = document.createElement('div');
         this._dotClickable.className += this._dotClickable.className ? ' viewer-ruler-dot-clickable' : 'viewer-ruler-dot-clickable';
 
-        this._visible = true;
+        this._visible = !!cfg.visible;
         this._culled = false;
 
         var dot = this._dot;
@@ -56,9 +55,14 @@ class Dot {
         }
         parentElement.appendChild(dotClickable);
 
+        dotClickable.addEventListener('click', (event) => {
+            parentElement.dispatchEvent(new MouseEvent('mouseover', event));
+        });
+
         if (cfg.onMouseOver) {
             dotClickable.addEventListener('mouseover', (event) => {
                 cfg.onMouseOver(event, this);
+                parentElement.dispatchEvent(new MouseEvent('mouseover', event));
             });
         }
 
@@ -71,6 +75,24 @@ class Dot {
         if (cfg.onMouseWheel) {
             dotClickable.addEventListener('wheel', (event) => {
                 cfg.onMouseWheel(event, this);
+            });
+        }
+
+        if (cfg.onMouseDown) {
+            dotClickable.addEventListener('mousedown', (event) => {
+                cfg.onMouseDown(event, this);
+            });
+        }
+
+        if (cfg.onMouseUp) {
+            dotClickable.addEventListener('mouseup', (event) => {
+                cfg.onMouseUp(event, this);
+            });
+        }
+
+        if (cfg.onMouseMove) {
+            dotClickable.addEventListener('mousemove', (event) => {
+                cfg.onMouseMove(event, this);
             });
         }
 

@@ -64,8 +64,8 @@
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-storeyviewsplugin">plugins/StoreyViewsPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/StoreyViewsPlugin/Storey.js~Storey.html">Storey</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/StoreyViewsPlugin/StoreyMap.js~StoreyMap.html">StoreyMap</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/StoreyViewsPlugin/StoreyViewsPlugin.js~StoreyViewsPlugin.html">StoreyViewsPlugin</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-IFCStoreyPlanObjectStates">IFCStoreyPlanObjectStates</a></span></span></li>
-<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-treeviewplugin">plugins/TreeViewPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/TreeViewPlugin.js~TreeViewPlugin.html">TreeViewPlugin</a></span></span></li>
+<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-treeviewplugin">plugins/TreeViewPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/RenderService.js~RenderService.html">RenderService</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/TreeViewPlugin.js~TreeViewPlugin.html">TreeViewPlugin</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-interface">I</span><span data-ice="name"><span><a href="class/src/plugins/TreeViewPlugin/TreeViewNode.js~TreeViewNode.html">TreeViewNode</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-viewcullplugin">plugins/ViewCullPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/ViewCullPlugin/ViewCullPlugin.js~ViewCullPlugin.html">ViewCullPlugin</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#plugins-webifcloaderplugin">plugins/WebIFCLoaderPlugin</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/plugins/WebIFCLoaderPlugin/WebIFCDefaultDataSource.js~WebIFCDefaultDataSource.html">WebIFCDefaultDataSource</a></span></span></li>
@@ -174,9 +174,12 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/geometry/VBOGeometry.js~VBOGeometry.html">VBOGeometry</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-geometry-builders">viewer/scene/geometry/builders</a><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildBoxGeometry">buildBoxGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildBoxLinesGeometry">buildBoxLinesGeometry</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildBoxLinesGeometryFromAABB">buildBoxLinesGeometryFromAABB</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildCylinderGeometry">buildCylinderGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildGridGeometry">buildGridGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildPlaneGeometry">buildPlaneGeometry</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildPolylineGeometry">buildPolylineGeometry</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildPolylineGeometryFromCurve">buildPolylineGeometryFromCurve</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildSphereGeometry">buildSphereGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildTorusGeometry">buildTorusGeometry</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-buildVectorTextGeometry">buildVectorTextGeometry</a></span></span></li>
@@ -218,9 +221,11 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/model/SceneModelTextureSet.js~SceneModelTextureSet.html">SceneModelTextureSet</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/model/SceneModelTransform.js~SceneModelTransform.html">SceneModelTransform</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/model/VBOSceneModel.js~VBOSceneModel.html">VBOSceneModel</a></span></span></li>
-<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-model-dtx-triangles">viewer/scene/model/dtx/triangles</a><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-uniquifyPositions">uniquifyPositions</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-uniquifyPositions">uniquifyPositions</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-rebucketPositions">rebucketPositions</a></span></span></li>
+<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-model-dtx-lines">viewer/scene/model/dtx/lines</a><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-rebucketPositions">rebucketPositions</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-dataTextureRamStats">dataTextureRamStats</a></span></span></li>
+<li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-model-dtx-triangles-lib">viewer/scene/model/dtx/triangles/lib</a><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-dataTextureRamStats">dataTextureRamStats</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-nodes">viewer/scene/nodes</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/nodes/Node.js~Node.html">Node</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-paths">viewer/scene/paths</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/paths/CubicBezierCurve.js~CubicBezierCurve.html">CubicBezierCurve</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/paths/Curve.js~Curve.html">Curve</a></span></span></li>
@@ -230,6 +235,7 @@
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-postfx">viewer/scene/postfx</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/postfx/SAO.js~SAO.html">SAO</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-scene">viewer/scene/scene</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/scene/Scene.js~Scene.html">Scene</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-sectionplane">viewer/scene/sectionPlane</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/sectionPlane/SectionPlane.js~SectionPlane.html">SectionPlane</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/sectionPlane/SectionPlaneCache.js~SectionPlaneCache.html">SectionPlaneCache</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-skybox">viewer/scene/skybox</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/skybox/Skybox.js~Skybox.html">Skybox</a></span></span></li>
 <li data-ice="doc"><a data-ice="dirPath" class="nav-dir-path" href="identifiers.html#viewer-scene-utils">viewer/scene/utils</a><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/utils/FileLoader.js~FileLoader.html">FileLoader</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/viewer/scene/utils/Loader.js~Loader.html">Loader</a></span></span></li>
@@ -619,35 +625,6 @@
         
         
         <div data-ice="description"><p>Default initial properties for <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></span>s loaded from models accompanied by metadata.</p>
-</div>
-      </div>
-    </td>
-    <td>
-      
-      
-    </td>
-  </tr>
-<tr data-ice="target">
-    <td>
-      <span class="access" data-ice="access">public</span>
-      
-      
-      
-      <span class="override" data-ice="override"></span>
-    </td>
-    <td>
-      <div>
-        <p>
-          
-          
-          
-          <span class="code" data-ice="name"><span><a href="variable/index.html#static-variable-IFCStoreyPlanObjectStates">IFCStoreyPlanObjectStates</a></span></span><span class="code" data-ice="signature">: {String: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></span>}</span>
-        </p>
-      </div>
-      <div>
-        
-        
-        <div data-ice="description"><p>Property states for <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></span>s in <span><a href="class/src/plugins/StoreyViewsPlugin/Storey.js~Storey.html">Storey</a></span>s capture by a <span><a href="class/src/plugins/StoreyViewsPlugin/StoreyViewsPlugin.js~StoreyViewsPlugin.html">StoreyViewsPlugin</a></span>.</p>
 </div>
       </div>
     </td>
@@ -2384,6 +2361,34 @@ image, with <code>RGB</code> compression in 4-bit mode and one block for each 4&
           
           
           
+          <span class="code" data-ice="name"><span><a href="variable/index.html#static-variable-dataTextureRamStats">dataTextureRamStats</a></span></span><span class="code" data-ice="signature">: {&quot;sizeDataColorsAndFlags&quot;: <span>*</span>, &quot;sizeDataPositionDecodeMatrices&quot;: <span>*</span>, &quot;sizeDataTextureOffsets&quot;: <span>*</span>, &quot;sizeDataTexturePositions&quot;: <span>*</span>, &quot;sizeDataTextureIndices&quot;: <span>*</span>, &quot;sizeDataTexturePortionIds&quot;: <span>*</span>, &quot;numberOfGeometries&quot;: <span>*</span>, &quot;numberOfPortions&quot;: <span>*</span>, &quot;numberOfLayers&quot;: <span>*</span>, &quot;numberOfTextures&quot;: <span>*</span>, &quot;totalLines&quot;: <span>*</span>, &quot;totalLines8Bits&quot;: <span>*</span>, &quot;totalLines16Bits&quot;: <span>*</span>, &quot;totalLines32Bits&quot;: <span>*</span>, &quot;cannotCreatePortion&quot;: <span>*</span>, &quot;overheadSizeAlignementIndices&quot;: <span>*</span>, &quot;overheadSizeAlignementEdgeIndices&quot;: <span>*</span>}</span>
+        </p>
+      </div>
+      <div>
+        
+        
+        
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+<tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">public</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
+          
           <span class="code" data-ice="name"><span><a href="variable/index.html#static-variable-dataTextureRamStats">dataTextureRamStats</a></span></span><span class="code" data-ice="signature">: {&quot;sizeDataColorsAndFlags&quot;: <span>*</span>, &quot;sizeDataPositionDecodeMatrices&quot;: <span>*</span>, &quot;sizeDataTextureOffsets&quot;: <span>*</span>, &quot;sizeDataTexturePositions&quot;: <span>*</span>, &quot;sizeDataTextureIndices&quot;: <span>*</span>, &quot;sizeDataTextureEdgeIndices&quot;: <span>*</span>, &quot;sizeDataTexturePortionIds&quot;: <span>*</span>, &quot;numberOfGeometries&quot;: <span>*</span>, &quot;numberOfPortions&quot;: <span>*</span>, &quot;numberOfLayers&quot;: <span>*</span>, &quot;numberOfTextures&quot;: <span>*</span>, &quot;totalPolygons&quot;: <span>*</span>, &quot;totalPolygons8Bits&quot;: <span>*</span>, &quot;totalPolygons16Bits&quot;: <span>*</span>, &quot;totalPolygons32Bits&quot;: <span>*</span>, &quot;totalEdges&quot;: <span>*</span>, &quot;totalEdges8Bits&quot;: <span>*</span>, &quot;totalEdges16Bits&quot;: <span>*</span>, &quot;totalEdges32Bits&quot;: <span>*</span>, &quot;cannotCreatePortion&quot;: <span>*</span>, &quot;overheadSizeAlignementIndices&quot;: <span>*</span>, &quot;overheadSizeAlignementEdgeIndices&quot;: <span>*</span>}</span>
         </p>
       </div>
@@ -3015,50 +3020,6 @@ object <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></
 a tree of <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></span>s that represent the model. These loaders can optionally load metadata, to create
 a <span><a href="class/src/viewer/metadata/MetaModel.js~MetaModel.html">MetaModel</a></span> corresponding to the root <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></span>, with a <span><a href="class/src/viewer/metadata/MetaObject.js~MetaObject.html">MetaObject</a></span> corresponding to each
 object <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></span> within the tree.</p>
-</div>
-
-  
-
-  <div data-ice="properties">
-</div>
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-  
-</div>
-<div class="detail" data-ice="detail">
-  <h3 data-ice="anchor" id="static-variable-IFCStoreyPlanObjectStates">
-    <span class="access" data-ice="access">public</span>
-    
-    
-    
-    
-    
-    <span class="code" data-ice="name">IFCStoreyPlanObjectStates</span><span class="code" data-ice="signature">: {String: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></span>}</span>
-    <span class="right-info">
-      
-      
-      <span data-ice="source"><span><a href="file/src/plugins/StoreyViewsPlugin/IFCStoreyPlanObjectStates.js.html#lineNumber6">source</a></span></span>
-    </span>
-  </h3>
-
-  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import {IFCStoreyPlanObjectStates} from &apos;<span><a href="file/src/plugins/StoreyViewsPlugin/IFCStoreyPlanObjectStates.js.html#lineNumber6">@xeokit/xeokit-sdk/src/plugins/StoreyViewsPlugin/IFCStoreyPlanObjectStates.js</a></span>&apos;</code></pre></div>
-  
-  
-  <div data-ice="description"><p>Property states for <span><a href="class/src/viewer/scene/Entity.js~Entity.html">Entity</a></span>s in <span><a href="class/src/plugins/StoreyViewsPlugin/Storey.js~Storey.html">Storey</a></span>s capture by a <span><a href="class/src/plugins/StoreyViewsPlugin/StoreyViewsPlugin.js~StoreyViewsPlugin.html">StoreyViewsPlugin</a></span>.</p>
 </div>
 
   
@@ -5675,15 +5636,58 @@ image, with <code>RGB</code> compression in 4-bit mode and one block for each 4&
     
     
     
+    <span class="code" data-ice="name">dataTextureRamStats</span><span class="code" data-ice="signature">: {&quot;sizeDataColorsAndFlags&quot;: <span>*</span>, &quot;sizeDataPositionDecodeMatrices&quot;: <span>*</span>, &quot;sizeDataTextureOffsets&quot;: <span>*</span>, &quot;sizeDataTexturePositions&quot;: <span>*</span>, &quot;sizeDataTextureIndices&quot;: <span>*</span>, &quot;sizeDataTexturePortionIds&quot;: <span>*</span>, &quot;numberOfGeometries&quot;: <span>*</span>, &quot;numberOfPortions&quot;: <span>*</span>, &quot;numberOfLayers&quot;: <span>*</span>, &quot;numberOfTextures&quot;: <span>*</span>, &quot;totalLines&quot;: <span>*</span>, &quot;totalLines8Bits&quot;: <span>*</span>, &quot;totalLines16Bits&quot;: <span>*</span>, &quot;totalLines32Bits&quot;: <span>*</span>, &quot;cannotCreatePortion&quot;: <span>*</span>, &quot;overheadSizeAlignementIndices&quot;: <span>*</span>, &quot;overheadSizeAlignementEdgeIndices&quot;: <span>*</span>}</span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/viewer/scene/model/dtx/lines/dataTextureRamStats.js.html#lineNumber1">source</a></span></span>
+    </span>
+  </h3>
+
+  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import {dataTextureRamStats} from &apos;<span><a href="file/src/viewer/scene/model/dtx/lines/dataTextureRamStats.js.html#lineNumber1">@xeokit/xeokit-sdk/src/viewer/scene/model/dtx/lines/dataTextureRamStats.js</a></span>&apos;</code></pre></div>
+  
+  
+  
+
+  
+
+  <div data-ice="properties">
+</div>
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+</div>
+<div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="static-variable-dataTextureRamStats">
+    <span class="access" data-ice="access">public</span>
+    
+    
+    
+    
+    
     <span class="code" data-ice="name">dataTextureRamStats</span><span class="code" data-ice="signature">: {&quot;sizeDataColorsAndFlags&quot;: <span>*</span>, &quot;sizeDataPositionDecodeMatrices&quot;: <span>*</span>, &quot;sizeDataTextureOffsets&quot;: <span>*</span>, &quot;sizeDataTexturePositions&quot;: <span>*</span>, &quot;sizeDataTextureIndices&quot;: <span>*</span>, &quot;sizeDataTextureEdgeIndices&quot;: <span>*</span>, &quot;sizeDataTexturePortionIds&quot;: <span>*</span>, &quot;numberOfGeometries&quot;: <span>*</span>, &quot;numberOfPortions&quot;: <span>*</span>, &quot;numberOfLayers&quot;: <span>*</span>, &quot;numberOfTextures&quot;: <span>*</span>, &quot;totalPolygons&quot;: <span>*</span>, &quot;totalPolygons8Bits&quot;: <span>*</span>, &quot;totalPolygons16Bits&quot;: <span>*</span>, &quot;totalPolygons32Bits&quot;: <span>*</span>, &quot;totalEdges&quot;: <span>*</span>, &quot;totalEdges8Bits&quot;: <span>*</span>, &quot;totalEdges16Bits&quot;: <span>*</span>, &quot;totalEdges32Bits&quot;: <span>*</span>, &quot;cannotCreatePortion&quot;: <span>*</span>, &quot;overheadSizeAlignementIndices&quot;: <span>*</span>, &quot;overheadSizeAlignementEdgeIndices&quot;: <span>*</span>}</span>
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/viewer/scene/model/dtx/triangles/dataTextureRamStats.js.html#lineNumber1">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/viewer/scene/model/dtx/triangles/lib/dataTextureRamStats.js.html#lineNumber1">source</a></span></span>
     </span>
   </h3>
 
-  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import {dataTextureRamStats} from &apos;<span><a href="file/src/viewer/scene/model/dtx/triangles/dataTextureRamStats.js.html#lineNumber1">@xeokit/xeokit-sdk/src/viewer/scene/model/dtx/triangles/dataTextureRamStats.js</a></span>&apos;</code></pre></div>
+  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import {dataTextureRamStats} from &apos;<span><a href="file/src/viewer/scene/model/dtx/triangles/lib/dataTextureRamStats.js.html#lineNumber1">@xeokit/xeokit-sdk/src/viewer/scene/model/dtx/triangles/lib/dataTextureRamStats.js</a></span>&apos;</code></pre></div>
   
   
   

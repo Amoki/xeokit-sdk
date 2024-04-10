@@ -178,6 +178,9 @@ class MetaModel {
         if (metaModelData.propertySets) {
             for (let i = 0, len = metaModelData.propertySets.length; i < len; i++) {
                 const propertySetData = metaModelData.propertySets[i];
+                if (!propertySetData.properties) { // HACK: https://github.com/Creoox/creoox-ifc2gltfcxconverter/issues/8
+                    propertySetData.properties = [];
+                }
                 let propertySet = metaScene.propertySets[propertySetData.id];
                 if (!propertySet) {
                     if (propertyLookup) {
@@ -217,13 +220,13 @@ class MetaModel {
                         external: metaObjectData.external,
                     });
                     this.metaScene.metaObjects[id] = metaObject;
+                    metaObject.metaModels = [];
                 }
-                metaObject.metaModels.push(this);
+                this.metaObjects.push(metaObject);
                 if (!metaObjectData.parent) {
                     this.rootMetaObjects.push(metaObject);
                     metaScene.rootMetaObjects[id] = metaObject;
                 }
-                this.metaObjects.push(metaObject);
             }
         }
     }
@@ -278,6 +281,21 @@ class MetaModel {
                     metaObject.parent = parentMetaObject;
                     (parentMetaObject.children || (parentMetaObject.children = [])).push(metaObject);
                 }
+            }
+        }
+
+        // Relink MetaObjects to their MetaModels
+
+        for (let objectId in metaScene.metaObjects) {
+            const metaObject = metaScene.metaObjects[objectId];
+            metaObject.metaModels = [];
+        }
+
+        for (let modelId in metaScene.metaModels) {
+            const metaModel = metaScene.metaModels[modelId];
+            for (let i = 0, len = metaModel.metaObjects.length; i < len; i++) {
+                const metaObject = metaModel.metaObjects[i];
+                metaObject.metaModels.push(metaModel);
             }
         }
 

@@ -8,7 +8,7 @@
     <link href='https://fonts.googleapis.com/css?family=Exo+2:400,800,900,700,600,500|Roboto:100,300,400,500,700,900'
           rel='stylesheet' type='text/css'>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"></script>
-    <link href='http://fonts.googleapis.com/css?family=Roboto+Condensed' rel='stylesheet' type='text/css'>
+    
 
     <style>
 
@@ -267,7 +267,8 @@
             ["vbo_instancing_autocompressed_triangles", "SceneModel test: VBOs, geometry reuse, auto-compressed, triangle primitives"],
             ["vbo_instancing_autocompressed_triangles_rtc", "SceneModel test: VBOs, geometry reuse, auto-compressed, triangle primitives, RTC"],
             ["vbo_instancing_autocompressed_triangles_textures_jpg", "SceneModel test: VBOs, geometry reuse, autocompressed coordinates, triangle primitives, JPEG texture"],
-            ["vbo_instancing_autocompressed_triangles_textures_ktx2", "SceneModel test: VBOs, geometry reuse, autocompressed coordinates,  triangle primitives, KTX2 texture"]
+            ["vbo_instancing_autocompressed_triangles_textures_ktx2", "SceneModel test: VBOs, geometry reuse, autocompressed coordinates,  triangle primitives, KTX2 texture"],
+            ["vbo_instancing_geometries", "SceneModel test: instanced points, lines and triangles geometries"]
         ],
 
         "VBO Batching": [
@@ -281,7 +282,8 @@
             ["vbo_batching_autocompressed_triangles", "SceneModel test: VBOs, no geometry reuse, auto-compressed, triangle primitives"],
             ["vbo_batching_autocompressed_triangles_rtc", "SceneModel test: VBOs, no geometry reuse, auto-compressed, triangle primitives, RTC coordinates"],
             ["vbo_batching_autocompressed_triangles_textures_jpg", "SceneModel test: VBOs, geometry reuse, auto-compressed, triangle primitives, JPEG texture"],
-            ["vbo_batching_autocompressed_triangles_textures_ktx2", "SceneModel test: VBOs, geometry reuse, auto-compressed, triangle primitives, KTX2 texture"]
+            ["vbo_batching_autocompressed_triangles_textures_ktx2", "SceneModel test: VBOs, geometry reuse, auto-compressed, triangle primitives, KTX2 texture"],
+            ["vbo_batching_geometries", "SceneModel test: batched points, lines and triangles geometries"]
         ],
 
         "DTX Batching": [
@@ -290,7 +292,8 @@
 
             ["dtx_batching_precompressed_triangles", "SceneModel test: data textures, no geometry reuse, pre-compressed geometry, triangle primitives"],
             ["dtx_batching_precompressed_bucketed_triangles", "SceneModel test: data textures, geometry reuse, pre-compressed and pre-bucketed geometry, triangle primitives"],
-            ["dtx_batching_autocompressed_triangles", "SceneModel test: data texture, no geometry reuse, auto-compressed, triangle primitives"]
+            ["dtx_batching_autocompressed_triangles", "SceneModel test: data texture, no geometry reuse, auto-compressed, triangle primitives"],
+            ["dtx_batching_geometries", "SceneModel test: data textures, batching points, lines and triangles geometries"]
         ],
 
         "DTX Instancing": [
@@ -299,7 +302,8 @@
 
             ["dtx_instancing_precompressed_triangles", "SceneModel test: data textures, geometry reuse, pre-compressed geometry, triangle primitives"],
             ["dtx_instancing_precompressed_bucketed_triangles", "SceneModel test: data textures, geometry reuse, pre-compressed and pre-bucketed geometry, triangle primitives"],
-            ["dtx_instancing_autocompressed_triangles", "SceneModel test: data textures, geometry reuse, auto-compressed, triangle primitives"]
+            ["dtx_instancing_autocompressed_triangles", "SceneModel test: data textures, geometry reuse, auto-compressed, triangle primitives"],
+            ["dtx_instancing_geometries", "SceneModel test: data textures, instanced points, lines and triangles geometries"]
         ],
 
         // "RTC": [
@@ -366,6 +370,7 @@
             ["effects_vbo_batching_colorize", "SceneModel test: VBOS and no geometry reuse  - mouseover to colorize objects"],
             ["effects_vbo_batching_highlight", "SceneModel test: VBOS and no geometry reuse  - mouseover to highlight objects"],
             ["effects_vbo_batching_select", "SceneModel test: VBOS and no geometry reuse  - mouseover to select objects"],
+            ["effects_vbo_batching_xray", "SceneModel test: VBOS and no geometry reuse  - mouseover to X-ray objects"],
 
             "#VBO instancing emphasis",
 
@@ -373,6 +378,7 @@
             ["effects_vbo_instancing_colorize", "SceneModel test: VBOS and geometry reuse  - mouseover to colorize objects"],
             ["effects_vbo_instancing_highlight", "SceneModel test: VBOS and geometry reuse  - mouseover to highlight objects"],
             ["effects_vbo_instancing_select", "SceneModel test: VBOS and geometry reuse  - mouseover to select objects"],
+            ["effects_vbo_instancing_xray", "SceneModel test: VBOS and geometry reuse  - mouseover to X-ray objects"],
 
             "#DTX batching emphasis (DTX instancing uses same code paths)",
 
@@ -462,7 +468,8 @@
             ["benchmark_vbo_batching_autocompressed_triangles", "SceneModel test VBO batching autocompressed triangles benchmark"],
             //   ["benchmark_vbo_instancing_autocompressed_triangles", "SceneModel test VBO instancing triangles benchmark"],
             ["benchmark_dtx_batching_autocompressed_triangles", "SceneModel test DTX batching autocompressed triangles benchmark"],
-            ["benchmark_dtx_instancing_autocompressed_triangles", "SceneModel test DTX instancing autocompressed triangles benchmark"]
+            ["benchmarking_via_spector", "Benchmarking using Spector.js"]
+
         ]
     };
 
