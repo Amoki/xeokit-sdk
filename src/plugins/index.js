@@ -19,4 +19,6 @@ export * from "./XKTLoaderPlugin/index.js";
 // export * from "./WebIFCLoaderPlugin/index.js";
 // export * from "./LASLoaderPlugin/index.js";
 // export * from "./CityJSONLoaderPlugin/index.js";
+// export * from "./DotBIMLoaderPlugin/index.js";
+// export * from "./ZonesPlugin/index.js";
 export * from "./TilesetLoaderPlugin/index.js";

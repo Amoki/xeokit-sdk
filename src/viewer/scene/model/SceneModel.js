@@ -43,6 +43,7 @@ import {SceneModelTransform} from "./SceneModelTransform.js";
 const tempVec3a = math.vec3();
 
 const tempOBB3 = math.OBB3();
+const tempQuaternion = math.vec4();
 
 const DEFAULT_SCALE = math.vec3([1, 1, 1]);
 const DEFAULT_POSITION = math.vec3([0, 0, 0]);
@@ -149,7 +150,7 @@ const DTX = 2;
  * Then, for each object in our model we'll add an {@link Entity}
  * that has a mesh that instances our box geometry, transforming and coloring the instance.
  *
- * [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/#sceneRepresentation_SceneModel_instancing)
+ * [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/index.html#sceneRepresentation_SceneModel_instancing)
  *
  * ````javascript
  * import {Viewer, SceneModel} from "xeokit-sdk.es.js";
@@ -349,7 +350,7 @@ const DTX = 2;
  * Let's once more use a ````SceneModel````
  * to build the simple table model, this time exploiting geometry batching.
  *
- *  [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/#sceneRepresentation_SceneModel_batching)
+ *  [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/index.html#sceneRepresentation_SceneModel_batching)
  *
  * ````javascript
  * import {Viewer, SceneModel} from "xeokit-sdk.es.js";
@@ -617,7 +618,7 @@ const DTX = 2;
  * ````
  *
  * Given an {@link Entity}, we can find the object or model of which it is a part, or the objects that comprise it. We can also generate UI
- * components from the metadata, such as the tree view demonstrated in [this demo](https://xeokit.github.io/xeokit-sdk/examples/#BIMOffline_glTF_OTCConferenceCenter).
+ * components from the metadata, such as the tree view demonstrated in [this demo](https://xeokit.github.io/xeokit-sdk/examples/index.html#BIMOffline_glTF_OTCConferenceCenter).
  *
  * This hierarchy allows us to express the hierarchical structure of a model while representing it in
  * various ways in the 3D scene (such as with ````SceneModel````, which
@@ -650,7 +651,7 @@ const DTX = 2;
  *
  * Note that the axis-aligned World-space boundary (AABB) of our model is ````[ -6, -9, -6, 1000000006, -2.5, 1000000006]````.
  *
- * [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/#sceneRepresentation_SceneModel_batching)
+ * [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/index.html#sceneRepresentation_SceneModel_batching)
  *
  * ````javascript
  * const origin = [100000000, 0, 100000000];
@@ -747,7 +748,7 @@ const DTX = 2;
  *
  * The axis-aligned World-space boundary (AABB) of our model is ````[ -6, -9, -6, 1000000006, -2.5, 1000000006]````.
  *
- * [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/#sceneRepresentation_SceneModel_batching)
+ * [![](http://xeokit.io/img/docs/sceneGraph.png)](https://xeokit.github.io/xeokit-sdk/examples/index.html#sceneRepresentation_SceneModel_batching)
  *
  * ````javascript
  * const origin = [100000000, 0, 100000000];
@@ -1122,10 +1123,15 @@ export class SceneModel extends Component {
      * represent the returned model. Set false to always use vertex buffer objects (VBOs). Note that DTX is only applicable
      * to non-textured triangle meshes, and that VBOs are always used for meshes that have textures, line segments, or point
      * primitives. Only works while {@link DTX#enabled} is also ````true````.
+     * @param {Number} [cfg.renderOrder=0] Specifies the rendering order for this SceneModel. This is used to control the order in which
+     * SceneModels are drawn when they have transparent objects, to give control over the order in which those objects are blended within the transparent
+     * render pass.
      */
     constructor(owner, cfg = {}) {
 
         super(owner, cfg);
+
+        this.renderOrder = cfg.renderOrder || 0;
 
         this._dtxEnabled = this.scene.dtxEnabled && (cfg.dtxEnabled !== false);
 
@@ -2672,7 +2678,7 @@ export class SceneModel extends Component {
             return;
         }
         let parentTransform;
-        if (this.parentTransformId) {
+        if (cfg.parentTransformId) {
             parentTransform = this._transforms[cfg.parentTransformId];
             if (!parentTransform) {
                 this.error("[createTransform] SceneModel.createTransform() config missing: id");
@@ -2682,7 +2688,7 @@ export class SceneModel extends Component {
         const transform = new SceneModelTransform({
             id: cfg.id,
             model: this,
-            parentTransform,
+            parent: parentTransform,
             matrix: cfg.matrix,
             position: cfg.position,
             scale: cfg.scale,
@@ -2726,6 +2732,7 @@ export class SceneModel extends Component {
      * @param {Number[]} [cfg.position=[0,0,0]] Local 3D position of the mesh. Overridden by ````transformId````.
      * @param {Number[]} [cfg.scale=[1,1,1]] Scale of the mesh.  Overridden by ````transformId````.
      * @param {Number[]} [cfg.rotation=[0,0,0]] Rotation of the mesh as Euler angles given in degrees, for each of the X, Y and Z axis.  Overridden by ````transformId````.
+     * @param {Number[]} [cfg.quaternion] Rotation of the mesh as a quaternion.  Overridden by ````rotation````.
      * @param {Number[]} [cfg.matrix=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]] Mesh modelling transform matrix. Overrides the ````position````, ````scale```` and ````rotation```` parameters. Also  overridden by ````transformId````.
      * @param {Number[]} [cfg.color=[1,1,1]] RGB color in range ````[0..1, 0..1, 0..1]````. Overridden by texture set ````colorTexture````. Overrides ````colors```` and ````colorsCompressed````.
      * @param {Number} [cfg.opacity=1] Opacity in range ````[0..1]````. Overridden by texture set ````colorTexture````.
@@ -2800,12 +2807,15 @@ export class SceneModel extends Component {
 
             if (cfg.matrix) {
                 cfg.meshMatrix = cfg.matrix;
-            } else if (cfg.scale || cfg.rotation || cfg.position) {
+            } else if (cfg.scale || cfg.rotation || cfg.position || cfg.quaternion) {
                 const scale = cfg.scale || DEFAULT_SCALE;
                 const position = cfg.position || DEFAULT_POSITION;
-                const rotation = cfg.rotation || DEFAULT_ROTATION;
-                math.eulerToQuaternion(rotation, "XYZ", DEFAULT_QUATERNION);
-                cfg.meshMatrix = math.composeMat4(position, DEFAULT_QUATERNION, scale, math.mat4());
+                if (cfg.rotation) {
+                    math.eulerToQuaternion(cfg.rotation, "XYZ", tempQuaternion);
+                    cfg.meshMatrix = math.composeMat4(position, tempQuaternion, scale, math.mat4());
+                } else {
+                    cfg.meshMatrix = math.composeMat4(position, cfg.quaternion || DEFAULT_QUATERNION, scale, math.mat4());
+                }
             }
 
             if (cfg.positionsDecodeBoundary) {
@@ -2993,13 +3003,16 @@ export class SceneModel extends Component {
                 // MATRIX
 
                 if (cfg.matrix) {
-                    cfg.meshMatrix = cfg.matrix.slice();
-                } else {
+                    cfg.meshMatrix = cfg.matrix;
+                } else if (cfg.scale || cfg.rotation || cfg.position || cfg.quaternion) {
                     const scale = cfg.scale || DEFAULT_SCALE;
                     const position = cfg.position || DEFAULT_POSITION;
-                    const rotation = cfg.rotation || DEFAULT_ROTATION;
-                    math.eulerToQuaternion(rotation, "XYZ", DEFAULT_QUATERNION);
-                    cfg.meshMatrix = math.composeMat4(position, DEFAULT_QUATERNION, scale, math.mat4());
+                    if (cfg.rotation) {
+                        math.eulerToQuaternion(cfg.rotation, "XYZ", tempQuaternion);
+                        cfg.meshMatrix = math.composeMat4(position, tempQuaternion, scale, math.mat4());
+                    } else {
+                        cfg.meshMatrix = math.composeMat4(position, cfg.quaternion || DEFAULT_QUATERNION, scale, math.mat4());
+                    }
                 }
 
                 math.AABB3ToOBB3(cfg.geometry.aabb, tempOBB3);
@@ -3194,6 +3207,7 @@ export class SceneModel extends Component {
     _getVBOBatchingLayer(cfg) {
         const model = this;
         const origin = cfg.origin;
+        const renderLayer = cfg.renderLayer || 0;
         const positionsDecodeHash = cfg.positionsDecodeMatrix || cfg.positionsDecodeBoundary ?
             this._createHashStringFromMatrix(cfg.positionsDecodeMatrix || cfg.positionsDecodeBoundary)
             : "-";
@@ -3700,7 +3714,7 @@ export class SceneModel extends Component {
     // -------------- RENDERING ---------------------------------------------------------------------------------------
 
     /** @private */
-    drawColorOpaque(frameCtx) {
+    drawColorOpaque(frameCtx, layerList) {
         const renderFlags = this.renderFlags;
         for (let i = 0, len = renderFlags.visibleLayers.length; i < len; i++) {
             const layerIndex = renderFlags.visibleLayers[i];

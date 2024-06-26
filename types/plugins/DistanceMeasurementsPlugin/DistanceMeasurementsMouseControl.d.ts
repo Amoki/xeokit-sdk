@@ -2,6 +2,7 @@ import {DistanceMeasurementsControl} from "./DistanceMeasurementsControl.js";
 
 import {DistanceMeasurementsPlugin} from "./DistanceMeasurementsPlugin";
 import {PointerLens} from "../../extras/PointerLens/PointerLens";
+import {DistanceMeasurement} from "./DistanceMeasurement";
 
 /**
  * Creates {@link DistanceMeasurement}s in a {@link DistanceMeasurementsPlugin} from mouse input.
@@ -21,11 +22,13 @@ export class DistanceMeasurementsMouseControl extends DistanceMeasurementsContro
      * @param {DistanceMeasurementsPlugin} distanceMeasurementsPlugin The DistanceMeasurementsPlugin to control.
      * @param {Object} cfg Configuration options.
      * @param {PointerLens} [cfg.pointerLens] A PointerLens to provide a magnified view of the cursor when snapping is enabled.
+     * @param {function} [cfg.canvasToPagePos] Optional function to map canvas-space coordinates to page coordinates.
      * @param {boolean} [cfg.snapping=true] Whether to enable snap-to-vertex and snap-to-edge for this DistanceMeasurementsMouseControl.
      */
     constructor(distanceMeasurementsPlugin: DistanceMeasurementsPlugin, cfg?: {
         pointerLens?: PointerLens;
         snapping?: boolean;
+        canvasToPagePos? : Function;
     });
 
     /**
@@ -63,6 +66,13 @@ export class DistanceMeasurementsMouseControl extends DistanceMeasurementsContro
      * Resets this DistanceMeasurementsMouseControl.
      */
     reset(): void;
+
+    /**
+     * Gets the {@link DistanceMeasurement} under construction by this DistanceMeasurementsMouseControl, if any.
+     *
+     * @returns {null|DistanceMeasurement}
+     */
+    get currentMeasurement() : DistanceMeasurement
 
     /**
      * Destroys this DistanceMeasurementsMouseControl.

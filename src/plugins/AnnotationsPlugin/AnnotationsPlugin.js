@@ -3,20 +3,16 @@ import {Annotation} from "./Annotation.js";
 import {utils} from "../../viewer/scene/utils.js";
 import {math} from "../../viewer/scene/math/math.js";
 
-const tempVec3a = math.vec3();
-const tempVec3b = math.vec3();
-const tempVec3c = math.vec3();
-
 /**
  * {@link Viewer} plugin that creates {@link Annotation}s.
  *
- * [<img src="https://user-images.githubusercontent.com/83100/58403089-26589280-8062-11e9-8652-aed61a4e8c64.gif">](https://xeokit.github.io/xeokit-sdk/examples/#annotations_clickFlyToPosition)
+ * [<img src="https://user-images.githubusercontent.com/83100/58403089-26589280-8062-11e9-8652-aed61a4e8c64.gif">](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_clickFlyToPosition)
  *
- * * [[Example 1: Create annotations with mouse](https://xeokit.github.io/xeokit-sdk/examples/#annotations_createWithMouse)]
- * * [[Example 2: Click annotations to toggle labels](https://xeokit.github.io/xeokit-sdk/examples/#annotations_clickShowLabels)]
- * * [[Example 3: Hover annotations to show labels](https://xeokit.github.io/xeokit-sdk/examples/#annotations_hoverShowLabels)]
- * * [[Example 4: Click annotations to fly to viewpoint](https://xeokit.github.io/xeokit-sdk/examples/#annotations_clickFlyToPosition)]
- * * [[Example 5: Create Annotations with externally-created elements](https://xeokit.github.io/xeokit-sdk/examples/#annotations_externalElements)]
+ * * [[Example 1: Create annotations with mouse](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_createWithMouse)]
+ * * [[Example 2: Click annotations to toggle labels](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_clickShowLabels)]
+ * * [[Example 3: Hover annotations to show labels](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_hoverShowLabels)]
+ * * [[Example 4: Click annotations to fly to viewpoint](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_clickFlyToPosition)]
+ * * [[Example 5: Create Annotations with externally-created elements](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_externalElements)]
  *
  * ## Overview
  *
@@ -46,7 +42,7 @@ const tempVec3c = math.vec3();
  *
  * Finally, we'll query the Annotation's position occlusion/visibility status, and subscribe to change events on those properties.
  *
- * [[Run example](https://xeokit.github.io/xeokit-sdk/examples/#annotations_clickShowLabels)]
+ * [[Run example](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_clickShowLabels)]
  *
  * ````JavaScript
  * import {Viewer, XKTLoaderPlugin,AnnotationsPlugin} from "xeokit-sdk.es.js";
@@ -319,7 +315,7 @@ const tempVec3c = math.vec3();
  *
  * Let's now extend our example to create an Annotation wherever we click on the surface of of our model:
  *
- * [[Run example](https://xeokit.github.io/xeokit-sdk/examples/#annotations_createWithMouse)]
+ * [[Run example](https://xeokit.github.io/xeokit-sdk/examples/index.html#annotations_createWithMouse)]
  *
  * ````javascript
  * var i = 1; // Used to create unique Annotation IDs
@@ -481,24 +477,6 @@ class AnnotationsPlugin extends Plugin {
             this.error("Viewer component with this ID already exists: " + params.id);
             delete params.id;
         }
-        var worldPos;
-        var entity;
-        params.pickResult = params.pickResult || params.pickRecord;
-        if (params.pickResult) {
-            const pickResult = params.pickResult;
-            if (!pickResult.worldPos || !pickResult.worldNormal) {
-                this.error("Param 'pickResult' does not have both worldPos and worldNormal");
-            } else {
-                const normalizedWorldNormal = math.normalizeVec3(pickResult.worldNormal, tempVec3a);
-                const offsetVec = math.mulVec3Scalar(normalizedWorldNormal, this._surfaceOffset, tempVec3b);
-                const offsetWorldPos = math.addVec3(pickResult.worldPos, offsetVec, tempVec3c);
-                worldPos = offsetWorldPos;
-                entity = pickResult.entity;
-            }
-        } else {
-            worldPos = params.worldPos;
-            entity = params.entity;
-        }
 
         var markerElement = null;
         if (params.markerElementId) {
@@ -519,8 +497,6 @@ class AnnotationsPlugin extends Plugin {
         const annotation = new Annotation(this.viewer.scene, {
             id: params.id,
             plugin: this,
-            entity: entity,
-            worldPos: worldPos,
             container: this._container,
             markerElement: markerElement,
             labelElement: labelElement,
@@ -536,6 +512,15 @@ class AnnotationsPlugin extends Plugin {
             projection: params.projection,
             visible: (params.visible !== false)
         });
+
+        params.pickResult = params.pickResult || params.pickRecord;
+        if (params.pickResult) {
+            annotation.setFromPickResult(params.pickResult);
+        } else {
+            annotation.entity = params.entity;
+            annotation.worldPos = params.worldPos;
+        }
+
         this.annotations[annotation.id] = annotation;
         annotation.on("destroyed", () => {
             delete this.annotations[annotation.id];

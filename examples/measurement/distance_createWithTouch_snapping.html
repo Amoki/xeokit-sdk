@@ -127,7 +127,7 @@
     // Import the modules we need for this example
     //------------------------------------------------------------------------------------------------------------------
 
-    import {Viewer, XKTLoaderPlugin, ContextMenu, DistanceMeasurementsPlugin, DistanceMeasurementsTouchControl, PointerLens} from "../../dist/xeokit-sdk.es.js";
+    import {Viewer, XKTLoaderPlugin, ContextMenu, DistanceMeasurementsPlugin, DistanceMeasurementsTouchControl, PointerLens} from "../../dist/xeokit-sdk.min.es.js";
 
     //------------------------------------------------------------------------------------------------------------------
     // Create a Viewer and arrange the camera
@@ -141,6 +141,8 @@
     viewer.camera.eye = [-3.93, 2.85, 27.01];
     viewer.camera.look = [4.40, 3.72, 8.89];
     viewer.camera.up = [-0.01, 0.99, 0.039];
+
+    viewer.cameraControl.panRightClick = false; // Prevents right-click-drag panning interfering with ContextMenus
 
     //------------------------------------------------------------------------------------------------------------------
     // Load a model
@@ -162,9 +164,27 @@
     // DistanceMeasurementsPlugin, DistanceMeasurementsTouchControl and PointerLens
     //------------------------------------------------------------------------------------------------------------------
 
-    const distanceMeasurements = new DistanceMeasurementsPlugin(viewer);
+    const distanceMeasurementsPlugin = new DistanceMeasurementsPlugin(viewer);
 
-    const distanceMeasurementsTouchControl  = new DistanceMeasurementsTouchControl(distanceMeasurements, {
+    distanceMeasurementsPlugin.on("measurementStart", (distanceMeasurement) => {
+        console.log("measurementStart");
+        console.log("origin", distanceMeasurement.origin.entity);
+        console.log("target", distanceMeasurement.target.entity);
+    });
+
+    distanceMeasurementsPlugin.on("measurementEnd", (distanceMeasurement) => {
+        console.log("measurementEnd");
+        console.log("origin", distanceMeasurement.origin.entity);
+        console.log("target", distanceMeasurement.target.entity);
+    });
+
+    distanceMeasurementsPlugin.on("measurementCancel", (distanceMeasurement) => {
+        console.log("measurementCancel");
+        console.log("origin", distanceMeasurement.origin.entity);
+        console.log("target", distanceMeasurement.target.entity);
+    });
+    
+    const distanceMeasurementsTouchControl  = new DistanceMeasurementsTouchControl(distanceMeasurementsPlugin, {
         pointerLens : new PointerLens(viewer),
         snapToVertex: true,
         snapToEdge: true
@@ -195,7 +215,39 @@
                 },
                 {
                     getTitle: (context) => {
-                        return context.distanceMeasurement.labelsVisible ? "Hide Labels" : "Show Labels";
+                        return context.distanceMeasurement.xLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable X Label" : "Enable X Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.xLabelEnabled = !context.distanceMeasurement.xLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.yLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Y Label" : "Enable Y Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.yLabelEnabled = !context.distanceMeasurement.yLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.zLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Z Label" : "Enable Z Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.zLabelEnabled = !context.distanceMeasurement.zLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.lengthLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Length Label" : "Enable Length Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.lengthLabelEnabled = !context.distanceMeasurement.lengthLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.labelsVisible ? "Hide All Labels" : "Show All Labels";
                     },
                     doAction: function (context) {
                         context.distanceMeasurement.labelsVisible = !context.distanceMeasurement.labelsVisible;
@@ -234,12 +286,12 @@
             [
                 {
                     getTitle: (context) => {
-                        return distanceMeasurements.control.active ? "Deactivate Control" : "Activate Control";
+                        return distanceMeasurementsPlugin.control.active ? "Deactivate Control" : "Activate Control";
                     },
                     doAction: function (context) {
-                        distanceMeasurements.control.active
-                            ? distanceMeasurements.control.deactivate()
-                            : distanceMeasurements.control.activate();
+                        distanceMeasurementsPlugin.control.active
+                            ? distanceMeasurementsPlugin.control.deactivate()
+                            : distanceMeasurementsPlugin.control.activate();
                     }
                 }
             ]
@@ -255,21 +307,21 @@
     // Create an DistanceMeasurementsPlugin, activate its DistanceMeasuremntsControl
     //------------------------------------------------------------------------------------------------------------------
 
-    distanceMeasurements.on("mouseOver", (e) => {
+    distanceMeasurementsPlugin.on("mouseOver", (e) => {
         e.distanceMeasurement.setHighlighted(true);
     });
 
-    distanceMeasurements.on("mouseLeave", (e) => {
+    distanceMeasurementsPlugin.on("mouseLeave", (e) => {
         if (distanceMeasurementsContextMenu.shown && distanceMeasurementsContextMenu.context.distanceMeasurement.id === e.distanceMeasurement.id) {
             return;
         }
         e.distanceMeasurement.setHighlighted(false);
     });
 
-    distanceMeasurements.on("contextMenu", (e) => {
+    distanceMeasurementsPlugin.on("contextMenu", (e) => {
         distanceMeasurementsContextMenu.context = { // Must set context before showing menu
             viewer: viewer,
-            distanceMeasurementsPlugin: distanceMeasurements,
+            distanceMeasurementsPlugin: distanceMeasurementsPlugin,
             distanceMeasurement: e.distanceMeasurement
         };
         distanceMeasurementsContextMenu.show(e.event.clientX, e.event.clientY);

@@ -48,7 +48,7 @@
 </body>
 <script type="module">
 
-    import {Viewer, GLTFLoaderPlugin, ReflectionMap, FastNavPlugin, sRGBEncoding} from "../../dist/xeokit-sdk.es.js";
+    import {Viewer, GLTFLoaderPlugin, ReflectionMap, FastNavPlugin, sRGBEncoding} from "../../dist/xeokit-sdk.min.es.js";
 
     const viewer = new Viewer({
         canvasId: "myCanvas",
@@ -100,7 +100,7 @@
 
     const sceneModel = gltfLoader.load({
         id: "myHousePlan",
-        src: "../../assets/Bexel/Beograd_Centar_Google_maps.glb",
+        src: "../../assets/models/gltf/HousePlan/glTF-Binary/HousePlan.glb",
        // edges: true
     });
 

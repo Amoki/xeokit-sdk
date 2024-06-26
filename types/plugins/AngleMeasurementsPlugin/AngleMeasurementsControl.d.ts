@@ -8,6 +8,7 @@ import {AngleMeasurementsPlugin} from "./AngleMeasurementsPlugin";
  * Once the AngleMeasurementControl is activated, the first click on any {@link Entity} begins constructing a {@link AngleMeasurement}, fixing its origin to that Entity. The next click on any Entity will complete the AngleMeasurement, fixing its target to that second Entity. The AngleMeasurementControl will then wait for the next click on any Entity, to begin constructing another AngleMeasurement, and so on, until deactivated.
  */
 export declare class AngleMeasurementsControl extends Component {
+
     /**
      * The {@link AngleMeasurementsPlugin} that owns this AngleMeasurementsControl.
      * @type {AngleMeasurementsPlugin}
@@ -55,6 +56,13 @@ export declare class AngleMeasurementsControl extends Component {
     deactivate(): void;
 
     /**
+     * Gets the {@link AngleMeasurement} under construction by this AngleMeasurementsControl, if any.
+     *
+     * @returns {null|AngleMeasurement}
+     */
+    get currentMeasurement() : AngleMeasurement
+    
+    /**
      * Resets this AngleMeasurementsControl.
      *
      * Destroys any {@link AngleMeasurement} under construction.
@@ -86,4 +94,12 @@ export declare class AngleMeasurementsControl extends Component {
      * @param scope  Scope for the callback
      */
     on(event: "measurementStart", callback: (measurement: AngleMeasurement) => void, scope?: any): string
+
+    /**
+     * Fires when the control is (de)activated
+     * @param event The activation event
+     * @param callback Called fired on the event
+     * @param scope  Scope for the callback
+     */
+    on(event: "activated", callback: (activated: boolean) => void, scope?: any): string
 }

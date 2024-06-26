@@ -86,7 +86,7 @@
 <div class="slideout-sidebar">
     <img class="info-icon" src="../../assets/images/measure_distance_icon.png"/>
     <h1>DistanceMeasurementPlugin with DistanceMeasurementsMouseControl and PointerLens</h1>
-    <h2>Click on the model to create distance measurements, with no vertex and edge snapping</h2>
+    <h2>Click on the model to create distance measurements, with vertex and edge snapping</h2>
     <p>In this example, we're loading a BIM model from the file system, then creating distance measurements wherever the
         user clicks on the model with the mouse.</p>
     <h3>Components Used</h3>
@@ -134,7 +134,7 @@
     // Import the modules we need for this example
     //------------------------------------------------------------------------------------------------------------------
 
-    import {Viewer, XKTLoaderPlugin, ContextMenu, DistanceMeasurementsPlugin, DistanceMeasurementsMouseControl, PointerLens} from "../../dist/xeokit-sdk.es.js";
+    import {Viewer, XKTLoaderPlugin, ContextMenu, PointerLens, DistanceMeasurementsPlugin, DistanceMeasurementsMouseControl, DistanceMeasurementEditMouseControl} from "../../dist/xeokit-sdk.es.js";
 
     //------------------------------------------------------------------------------------------------------------------
     // Create a Viewer and arrange the camera
@@ -149,6 +149,8 @@
     viewer.camera.look = [4.40, 3.72, 8.89];
     viewer.camera.up = [-0.01, 0.99, 0.039];
 
+    viewer.cameraControl.panRightClick = false; // Prevents right-click-drag panning interfering with ContextMenus
+
     //------------------------------------------------------------------------------------------------------------------
     // Load a model
     //------------------------------------------------------------------------------------------------------------------
@@ -161,7 +163,7 @@
         edges: true
     });
 
-    sceneModel.on("loaded", ()=>{
+    sceneModel.on("loaded", () => {
         viewer.cameraFlight.jumpTo(sceneModel);
     });
 
@@ -171,19 +173,27 @@
 
     const distanceMeasurementsPlugin = new DistanceMeasurementsPlugin(viewer);
 
-    distanceMeasurementsPlugin.on("mouseOver", (e) => {
-        e.measurement.setHighlighted(true);
+    distanceMeasurementsPlugin.on("measurementStart", (distanceMeasurement) => {
+        console.log("measurementStart");
+        console.log("origin", distanceMeasurement.origin.entity);
+        console.log("target", distanceMeasurement.target.entity);
     });
 
-    distanceMeasurementsPlugin.on("mouseLeave", (e) => {
-        if (distanceMeasurementsContextMenu.shown && distanceMeasurementsContextMenu.context.measurement.id === e.measurement.id) {
-            return;
-        }
-        e.measurement.setHighlighted(false);
+    distanceMeasurementsPlugin.on("measurementEnd", (distanceMeasurement) => {
+        console.log("measurementEnd");
+        console.log("origin", distanceMeasurement.origin.entity);
+        console.log("target", distanceMeasurement.target.entity);
     });
-    
-    const distanceMeasurementsMouseControl  = new DistanceMeasurementsMouseControl(distanceMeasurementsPlugin, {
-        pointerLens : new PointerLens(viewer)
+
+    distanceMeasurementsPlugin.on("measurementCancel", (distanceMeasurement) => {
+        console.log("measurementCancel");
+        console.log("origin", distanceMeasurement.origin.entity);
+        console.log("target", distanceMeasurement.target.entity);
+    });
+
+    const distanceMeasurementsMouseControl = new DistanceMeasurementsMouseControl(distanceMeasurementsPlugin, {
+        pointerLens: new PointerLens(viewer),
+        snapping: true // Default
     })
 
     distanceMeasurementsMouseControl.snapping = true;
@@ -193,6 +203,8 @@
     //------------------------------------------------------------------------------------------------------------------
     // Create a context menu to delete and configure measurements
     //------------------------------------------------------------------------------------------------------------------
+
+    let endMeasurementEdit = null;
 
     const distanceMeasurementsContextMenu = new ContextMenu({
         items: [
@@ -213,10 +225,58 @@
                 },
                 {
                     getTitle: (context) => {
-                        return context.distanceMeasurement.labelsVisible ? "Hide Labels" : "Show Labels";
+                        return context.distanceMeasurement.xLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable X Label" : "Enable X Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.xLabelEnabled = !context.distanceMeasurement.xLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.yLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Y Label" : "Enable Y Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.yLabelEnabled = !context.distanceMeasurement.yLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.zLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Z Label" : "Enable Z Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.zLabelEnabled = !context.distanceMeasurement.zLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.lengthLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Length Label" : "Enable Length Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.lengthLabelEnabled = !context.distanceMeasurement.lengthLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.labelsVisible ? "Hide All Labels" : "Show All Labels";
                     },
                     doAction: function (context) {
                         context.distanceMeasurement.labelsVisible = !context.distanceMeasurement.labelsVisible;
+                    }
+                },
+                {
+                    title: "Edit",
+                    doAction: function (context) {
+                        distanceMeasurementsMouseControl.deactivate();
+                        const measurement = context.distanceMeasurement;
+                        const edit = new DistanceMeasurementEditMouseControl(measurement, {
+                            pointerLens: new PointerLens(viewer),
+                            snapping: true
+                        });
+                        edit.on("edited", () => console.log("edited", measurement.id));
+                        endMeasurementEdit = () => {
+                            edit.deactivate();
+                            endMeasurementEdit = null;
+                        };
                     }
                 }
             ], [
@@ -227,6 +287,14 @@
                     },
                     doAction: function (context) {
                         context.distanceMeasurementsPlugin.clear();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    doAction: function () {
+                        distanceMeasurementsMouseControl.reset();
                     }
                 }
             ]
@@ -252,32 +320,63 @@
             [
                 {
                     getTitle: (context) => {
-                        return distanceMeasurementsPlugin.control.active ? "Deactivate Control" : "Activate Control";
+                        return distanceMeasurementsMouseControl.active ? "Deactivate Control" : "Activate Control";
                     },
                     doAction: function (context) {
-                        distanceMeasurementsPlugin.control.active
-                            ? distanceMeasurementsPlugin.control.deactivate()
-                            : distanceMeasurementsPlugin.control.activate();
+                        distanceMeasurementsMouseControl.active
+                            ? distanceMeasurementsMouseControl.deactivate()
+                            : distanceMeasurementsMouseControl.activate();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    getEnabled: function () {
+                        return (!!distanceMeasurementsMouseControl.currentMeasurement);
+                    },
+                    doAction: function () {
+                        distanceMeasurementsMouseControl.reset();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "End Editing";
+                    },
+                    getEnabled: function () {
+                        return !!endMeasurementEdit;
+                    },
+                    doAction: function () {
+                        endMeasurementEdit();
                     }
                 }
             ]
         ]
     });
 
-    // viewer.cameraControl.on("rightClick", function (e) {
-    //     canvasContextMenu.show(e.pagePos[0], e.pagePos[1]);
-    //     e.event.preventDefault();
-    // });
+    viewer.scene.canvas.canvas.addEventListener('contextmenu', (event) => {
+        const canvasPos = getCanvasPosFromEvent(event);
+        console.log("canvas context menu")
+        canvasContextMenu.show(canvasPos[0], canvasPos[1]);
+        event.preventDefault();
+        event.stopPropagation();
+    });
 
     //------------------------------------------------------------------------------------------------------------------
     // Create an DistanceMeasurementsPlugin, activate its DistanceMeasuremntsControl
     //------------------------------------------------------------------------------------------------------------------
 
     distanceMeasurementsPlugin.on("mouseOver", (e) => {
+        if (endMeasurementEdit) {
+            return;
+        }
         e.distanceMeasurement.setHighlighted(true);
     });
 
     distanceMeasurementsPlugin.on("mouseLeave", (e) => {
+        if (endMeasurementEdit) {
+            return;
+        }
         if (distanceMeasurementsContextMenu.shown && distanceMeasurementsContextMenu.context.distanceMeasurement.id === e.distanceMeasurement.id) {
             return;
         }
@@ -285,6 +384,9 @@
     });
 
     distanceMeasurementsPlugin.on("contextMenu", (e) => {
+        if (endMeasurementEdit) {
+            return;
+        }
         distanceMeasurementsContextMenu.context = { // Must set context before showing menu
             viewer: viewer,
             distanceMeasurementsPlugin: distanceMeasurementsPlugin,
@@ -293,6 +395,31 @@
         distanceMeasurementsContextMenu.show(e.event.clientX, e.event.clientY);
         e.event.preventDefault();
     });
+
+    const getCanvasPosFromEvent = function (event) {
+        const canvasPos = [];
+        if (!event) {
+            event = window.event;
+            canvasPos[0] = event.x;
+            canvasPos[1] = event.y;
+        } else {
+            let element = event.target;
+            let totalOffsetLeft = 0;
+            let totalOffsetTop = 0;
+            let totalScrollX = 0;
+            let totalScrollY = 0;
+            while (element.offsetParent) {
+                totalOffsetLeft += element.offsetLeft;
+                totalOffsetTop += element.offsetTop;
+                totalScrollX += element.scrollLeft;
+                totalScrollY += element.scrollTop;
+                element = element.offsetParent;
+            }
+            canvasPos[0] = event.pageX + totalScrollX - totalOffsetLeft;
+            canvasPos[1] = event.pageY + totalScrollY - totalOffsetTop;
+        }
+        return canvasPos;
+    };
 
     window.viewer = viewer;
 

@@ -5,7 +5,7 @@
  * This component is used by {@link DistanceMeasurementsControl} and {@link AngleMeasurementsControl}
  * to help position the pointer when snap-to-vertex or snap-toedge is enabled.
  *
- * [[Run example](https://xeokit.github.io/xeokit-sdk/examples/measurements/#distance_modelWithMeasurements)]
+ * [[Run an example](https://xeokit.github.io/xeokit-sdk/examples/measurement/#distance_createWithMouse_snapping)]
  *
  * ````JavaScript
  *
@@ -149,8 +149,8 @@ export class PointerLens {
         );
 
         const centerLensCanvas = [
-            (lensRect.left + lensRect.right) / 2,
-            (lensRect.top + lensRect.bottom) / 2
+            (lensRect.left + lensRect.right) / 2 - canvasRect.left,
+            (lensRect.top + lensRect.bottom) / 2 - canvasRect.top
         ];
 
         if (this._snappedCanvasPos) {

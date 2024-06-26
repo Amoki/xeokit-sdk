@@ -103,10 +103,10 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
     }
 
     _destroyMarkerDiv() {
-        if (this._markerDiv) {
+        if (this.markerDiv) {
             const element = document.getElementById('myMarkerDiv')
             element.parentNode.removeChild(element)
-            this._markerDiv = null
+            this.markerDiv = null
         }
     }
 
@@ -193,8 +193,8 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         const mouseHoverCanvasPos = math.vec2();
         this._currentAngleMeasurement = null;
 
-        const getTop = el => el.offsetTop + (el.offsetParent && getTop(el.offsetParent));
-        const getLeft = el => el.offsetLeft + (el.offsetParent && getLeft(el.offsetParent));
+        const getTop = el => el.offsetTop + (el.offsetParent && (el.offsetParent !== canvas.parentNode) && getTop(el.offsetParent));
+        const getLeft = el => el.offsetLeft + (el.offsetParent && (el.offsetParent !== canvas.parentNode) && getLeft(el.offsetParent));
 
         const pagePos = math.vec2();
 
@@ -288,13 +288,16 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                         this._currentAngleMeasurement = this.angleMeasurementsPlugin.createMeasurement({
                             id: math.createUUID(),
                             origin: {
-                                worldPos: mouseWorldPos
+                                worldPos: mouseWorldPos,
+                                entity: hoveredEntity
                             },
                             corner: {
-                                worldPos: mouseWorldPos
+                                worldPos: mouseWorldPos,
+                                entity: hoveredEntity
                             },
                             target: {
-                                worldPos: mouseWorldPos
+                                worldPos: mouseWorldPos,
+                                entity: hoveredEntity
                             },
                             approximate: true
                         });
@@ -435,6 +438,15 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
             this._currentAngleMeasurement = null;
         }
         this._mouseState = MOUSE_FINDING_ORIGIN;
+    }
+
+    /**
+     * Gets the {@link AngleMeasurement} under construction by this AngleMeasurementsMouseControl, if any.
+     *
+     * @returns {null|AngleMeasurement}
+     */
+    get currentMeasurement() {
+        return this._currentAngleMeasurement;
     }
 
     /**

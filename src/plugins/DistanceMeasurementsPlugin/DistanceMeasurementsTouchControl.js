@@ -63,8 +63,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
         this._onCanvasTouchStart = null;
         this._onCanvasTouchEnd = null;
         this._longTouchTimeoutMs = 300;
-        this._snapToEdge = cfg.snapToEdge !== false;
-        this._snapToVertex = cfg.snapToVertex !== false;
+        this._snapping = cfg.snapping !== false;
         this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
 
         this._attachPlugin(distanceMeasurementsPlugin, cfg);
@@ -94,39 +93,35 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
     }
 
     /**
-     * Sets whether snap-to-vertex is enabled for this DistanceMeasurementsTouchControl.
+     * Sets whether snap-to-vertex and snap-to-edge are enabled for this DistanceMeasurementsTouchControl.
+     *
      * This is `true` by default.
-     * @param snapToVertex
+     *
+     * Internally, this deactivates then activates the DistanceMeasurementsTouchControl when changed, which means that
+     * it will destroy any DistanceMeasurements currently under construction, and incurs some overhead, since it unbinds
+     * and rebinds various input handlers.
+     *
+     * @param {boolean} snapping Whether to enable snap-to-vertex and snap-edge for this DistanceMeasurementsTouchControl.
      */
-    set snapToVertex(snapToVertex) {
-        this._snapToVertex = snapToVertex;
+    set snapping(snapping) {
+        if (snapping !== this._snapping) {
+            this._snapping = snapping;
+            this.deactivate();
+            this.activate();
+        } else {
+            this._snapping = snapping;
+        }
     }
 
     /**
-     * Gets whether snap-to-vertex is enabled for this DistanceMeasurementsTouchControl.
+     * Gets whether snap-to-vertex and snap-to-edge are enabled for this DistanceMeasurementsTouchControl.
+     *
      * This is `true` by default.
-     * @returns {*}
+     *
+     * @returns {boolean} Whether snap-to-vertex and snap-to-edge are enabled for this DistanceMeasurementsTouchControl.
      */
-    get snapToVertex() {
-        return this._snapToVertex;
-    }
-
-    /**
-     * Sets whether snap-to-edge is enabled for this DistanceMeasurementsTouchControl.
-     * This is `true` by default.
-     * @param snapToEdge
-     */
-    set snapToEdge(snapToEdge) {
-        this._snapToEdge = snapToEdge;
-    }
-
-    /**
-     * Gets whether snap-to-edge is enabled for this DistanceMeasurementsTouchControl.
-     * This is `true` by default.
-     * @returns {*}
-     */
-    get snapToEdge() {
-        return this._snapToEdge;
+    get snapping() {
+        return this._snapping;
     }
 
     /**
@@ -156,11 +151,11 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
 
         let touchId = null;
 
-        const disableCameraMouseControl = () => {
+        const disableCameraNavigation = () => {
             this.plugin.viewer.cameraControl.active = false;
         }
 
-        const enableCameraMouseControl = () => {
+        const enableCameraNavigation = () => {
             this.plugin.viewer.cameraControl.active = true;
         }
 
@@ -173,7 +168,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                 this._currentDistanceMeasurement.destroy();
                 this._currentDistanceMeasurement = null;
             }
-            enableCameraMouseControl();
+            enableCameraNavigation();
             this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
         }
 
@@ -205,8 +200,8 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                     }
                     const snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapping: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && snapPickResult.snapped) {
                         pointerWorldPos.set(snapPickResult.worldPos);
@@ -250,10 +245,12 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                             this._currentDistanceMeasurement = plugin.createMeasurement({
                                 id: math.createUUID(),
                                 origin: {
-                                    worldPos: pointerWorldPos
+                                    worldPos: pointerWorldPos,
+                                    entity: snapPickResult.entity
                                 },
                                 target: {
-                                    worldPos: pointerWorldPos
+                                    worldPos: pointerWorldPos,
+                                    entity: snapPickResult.entity
                                 }
                             });
                             this._currentDistanceMeasurement.labelsVisible = false;
@@ -274,7 +271,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                         // }
                         this._touchState = WAITING_FOR_ORIGIN_LONG_TOUCH_END;
                         // console.log("touchstart: this._touchState= WAITING_FOR_ORIGIN_TOUCH_START -> WAITING_FOR_ORIGIN_LONG_TOUCH_END")
-                        disableCameraMouseControl();
+                        disableCameraNavigation();
                     }, this._longTouchTimeoutMs);
                     this._touchState = WAITING_FOR_ORIGIN_QUICK_TOUCH_END;
                     // console.log("touchstart: this._touchState= WAITING_FOR_ORIGIN_TOUCH_START -> WAITING_FOR_ORIGIN_QUICK_TOUCH_END")
@@ -312,8 +309,8 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
 
                             const snapPickResult = scene.pick({
                                 canvasPos: touchMoveCanvasPos,
-                                snapToVertex: this._snapToVertex,
-                                snapToEdge: this._snapToEdge
+                                snapToVertex: this._snapping,
+                                snapToEdge: this._snapping
                             });
                             if (snapPickResult && snapPickResult.snapped) {
                                 if (this.pointerLens) {
@@ -323,6 +320,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                                 this.pointerCircle.start(snapPickResult.snappedCanvasPos);
                                 pointerWorldPos.set(snapPickResult.worldPos);
                                 this._currentDistanceMeasurement.target.worldPos = snapPickResult.worldPos;
+                                this._currentDistanceMeasurement.target.entity = snapPickResult.entity;
                                 this._currentDistanceMeasurement.targetVisible = true;
                                 this._currentDistanceMeasurement.wireVisible = true;
                                 this._currentDistanceMeasurement.labelsVisible = true;
@@ -340,6 +338,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                                     this.pointerCircle.start(pickResult.canvasPos);
                                     pointerWorldPos.set(pickResult.worldPos);
                                     this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                                    this._currentDistanceMeasurement.target.entity = pickResult.entity;
                                     this._currentDistanceMeasurement.targetVisible = true;
                                     this._currentDistanceMeasurement.wireVisible = true;
                                     this._currentDistanceMeasurement.labelsVisible = true;
@@ -355,7 +354,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                             this._touchState = WAITING_FOR_TARGET_LONG_TOUCH_END;
                             // console.log("touchstart: this._touchState= WAITING_FOR_TARGET_TOUCH_START -> WAITING_FOR_TARGET_LONG_TOUCH_END")
 
-                            disableCameraMouseControl();
+                            disableCameraNavigation();
 
                         }, this._longTouchTimeoutMs);
 
@@ -415,10 +414,8 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                     }
                     snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-
-
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapToVertex: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && (snapPickResult.snapped)) {
                         if (this.pointerLens) {
@@ -430,10 +427,12 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                             this._currentDistanceMeasurement = plugin.createMeasurement({
                                 id: math.createUUID(),
                                 origin: {
-                                    worldPos: snapPickResult.worldPos
+                                    worldPos: snapPickResult.worldPos,
+                                    entity: snapPickResult.entity
                                 },
                                 target: {
-                                    worldPos: snapPickResult.worldPos
+                                    worldPos: snapPickResult.worldPos,
+                                    entity: snapPickResult.entity
                                 }
                             });
                             this._currentDistanceMeasurement.labelsVisible = false;
@@ -464,10 +463,12 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                                 this._currentDistanceMeasurement = plugin.createMeasurement({
                                     id: math.createUUID(),
                                     origin: {
-                                        worldPos: pickResult.worldPos
+                                        worldPos: pickResult.worldPos,
+                                        entity: pickResult.entity
                                     },
                                     target: {
-                                        worldPos: pickResult.worldPos
+                                        worldPos: pickResult.worldPos,
+                                        entity: pickResult.entity
                                     }
                                 });
                                 this._currentDistanceMeasurement.labelsVisible = false;
@@ -515,8 +516,8 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                     }
                     snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapToVertex: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && snapPickResult.worldPos) {
                         if (this.pointerLens) {
@@ -524,6 +525,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                             this.pointerLens.snapped = true;
                         }
                         this._currentDistanceMeasurement.target.worldPos = snapPickResult.worldPos;
+                        this._currentDistanceMeasurement.target.entity = snapPickResult.entity;
                         this._currentDistanceMeasurement.targetVisible = true;
                         this._currentDistanceMeasurement.wireVisible = true;
                         this._currentDistanceMeasurement.labelsVisible = true;
@@ -538,6 +540,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                                 this.pointerLens.snapped = false;
                             }
                             this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                            this._currentDistanceMeasurement.target.entity = pickResult.entity;
                             this._currentDistanceMeasurement.targetVisible = true;
                             this._currentDistanceMeasurement.wireVisible = true;
                             this._currentDistanceMeasurement.labelsVisible = true;
@@ -596,10 +599,12 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                         this._currentDistanceMeasurement = plugin.createMeasurement({
                             id: math.createUUID(),
                             origin: {
-                                worldPos: pickResult.worldPos
+                                worldPos: pickResult.worldPos,
+                                entity: pickResult.entity
                             },
                             target: {
-                                worldPos: pickResult.worldPos
+                                worldPos: pickResult.worldPos,
+                                entity: pickResult.entity
                             }
                         });
                         this._currentDistanceMeasurement.labelsVisible = false;
@@ -611,6 +616,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                         this._currentDistanceMeasurement.targetVisible = false;
                         this._currentDistanceMeasurement.clickable = false;
                         this._touchState = WAITING_FOR_TARGET_TOUCH_START;
+                        this.distanceMeasurementsPlugin.fire("measurementStart", this._currentDistanceMeasurement);
                         //  console.log("touchend: this._touchState= WAITING_FOR_ORIGIN_QUICK_TOUCH_END -> WAITING_FOR_ORIGIN_TOUCH_START")
                     } else {
                         if (this._currentDistanceMeasurement) {
@@ -620,7 +626,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                         //  console.log("touchend: this._touchState= WAITING_FOR_ORIGIN_QUICK_TOUCH_END -> WAITING_FOR_ORIGIN_TOUCH_START")
                     }
                 }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_ORIGIN_LONG_TOUCH_END:
@@ -638,7 +644,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                         this._touchState = WAITING_FOR_TARGET_TOUCH_START;
                         //  console.log("touchend: this._touchState= WAITING_FOR_ORIGIN_LONG_TOUCH_END (picked, begin measurement) -> WAITING_FOR_TARGET_TOUCH_START")
                     }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_TARGET_QUICK_TOUCH_END: {
@@ -656,9 +662,14 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                     });
                     if (pickResult && pickResult.worldPos) {
                         this._currentDistanceMeasurement.target.worldPos = pickResult.worldPos;
+                        this._currentDistanceMeasurement.target.entity = pickResult.entity;
                         this._currentDistanceMeasurement.targetVisible = true;
                         this._currentDistanceMeasurement.wireVisible = true;
                         this._currentDistanceMeasurement.labelsVisible = true;
+                        this._currentDistanceMeasurement.xAxisVisible = true;
+                        this._currentDistanceMeasurement.yAxisVisible = true;
+                        this._currentDistanceMeasurement.zAxisVisible = true;
+                        this._currentDistanceMeasurement.clickable = true;
                         this.distanceMeasurementsPlugin.fire("measurementEnd", this._currentDistanceMeasurement);
                         this._currentDistanceMeasurement = null;
                     } else {
@@ -670,10 +681,11 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                     this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
                     //  console.log("touchend: this._touchState= WAITING_FOR_TARGET_TOUCH_START -> WAITING_FOR_ORIGIN_TOUCH_START")
                 }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_TARGET_LONG_TOUCH_END:
+                    console.log('long touch');
                     if (this.pointerLens) {
                         this.pointerLens.visible = false;
                     }
@@ -691,7 +703,7 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
                         this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
                         //  console.log("touchend: this._touchState= WAITING_FOR_TARGET_LONG_TOUCH_END  -> WAITING_FOR_ORIGIN_TOUCH_START")
                     }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
             }
 
@@ -741,6 +753,16 @@ export class DistanceMeasurementsTouchControl extends DistanceMeasurementsContro
             this._currentDistanceMeasurement.destroy();
             this._currentDistanceMeasurement = null;
         }
+        this._mouseState = WAITING_FOR_ORIGIN_TOUCH_START;
+    }
+
+    /**
+     * Gets the {@link DistanceMeasurement} under construction by this DistanceMeasurementsTouchControl, if any.
+     *
+     * @returns {null|DistanceMeasurement}
+     */
+    get currentMeasurement() {
+        return this._currentDistanceMeasurement;
     }
 
     /**

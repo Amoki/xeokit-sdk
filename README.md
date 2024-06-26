@@ -7,6 +7,17 @@
 [xeokit](http://xeokit.io) is a JavaScript software development kit created by [xeolabs](http://xeolabs.com) for viewing
 high-detail, full-precision 3D engineering and BIM models in the browser.
 
+## Resources
+
+* [xeokit.io](https://xeokit.io/)
+* [Examples](http://xeokit.github.io/xeokit-sdk/examples/)
+* [Guides](https://www.notion.so/xeokit/xeokit-Documentation-4598591fcedb4889bf8896750651f74e)
+* [API Docs](https://xeokit.github.io/xeokit-sdk/docs/)
+* [Features](https://xeokit.io/index.html?foo=1#features)
+* [Changelog](https://github.com/xeokit/xeokit-sdk/blob/master/CHANGELOG.md)
+* [FAQ](https://xeokit.io/index.html?foo=1#faq)
+* [License](https://xeokit.io/index.html#pricing)
+
 ## Installing
 
 ````bash
@@ -50,7 +61,7 @@ which we can pre-convert offline from other formats.
             user-select: none;
         }
 
-        #myCanvas {
+        #xeokit_canvas {
             width: 100%;
             height: 100%;
             position: absolute;
@@ -60,46 +71,42 @@ which we can pre-convert offline from other formats.
     </style>
 </head>
 <body>
-<canvas id="myCanvas"></canvas>
+<canvas id="xeokit_canvas"></canvas>
 </body>
 <script id="source" type="module">
 
-    import {Viewer, WebIFCLoaderPlugin} from
-                "https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/xeokit-sdk.es.min.js";
-
+    import {WebIFCLoaderPlugin, Viewer} from
+                    "https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/xeokit-sdk.es.min.js";
+    import * as WebIFC from "https://cdn.jsdelivr.net/npm/web-ifc@0.0.51/web-ifc-api.js";
     const viewer = new Viewer({
-        canvasId: "myCanvas",
-        transparent: true
+        canvasId: "xeokit_canvas",
+        transparent: true,
+        dtxEnabled: true
     });
 
     viewer.camera.eye = [-3.933, 2.855, 27.018];
     viewer.camera.look = [4.400, 3.724, 8.899];
     viewer.camera.up = [-0.018, 0.999, 0.039];
 
-    const webIFCLoader = new WebIFCLoaderPlugin(viewer, {
-        wasmPath: "https://cdn.jsdelivr.net/npm/@xeokit/xeokit-sdk/dist/"
-    });
+    const IfcAPI = new WebIFC.IfcAPI();
+    IfcAPI.SetWasmPath("https://cdn.jsdelivr.net/npm/web-ifc@0.0.51/");
 
-    const model = webIFCLoader.load({
-        src: "Duplex.ifc",
-        edges: true
-    });
+    IfcAPI.Init().then(() => {
+        const ifcLoader = new WebIFCLoaderPlugin(viewer, {
+            WebIFC,
+            IfcAPI
+        });
 
+        const model = ifcLoader.load({
+            src: "Duplex.ifc",
+            edges: true
+        });
+    });
 </script>
 </html>
 ````
 
-## Resources
 
-* [xeokit.io](https://xeokit.io/)
-* [Examples](http://xeokit.github.io/xeokit-sdk/examples/)
-* [Guides](https://www.notion.so/xeokit/xeokit-Documentation-4598591fcedb4889bf8896750651f74e)
-* [API Docs](https://xeokit.github.io/xeokit-sdk/docs/)
-* [Changelog](https://xeokit.github.io/xeokit-sdk/CHANGE_LOG)
-* [Features](https://xeokit.io/index.html?foo=1#features)
-* [FAQ](https://xeokit.io/index.html?foo=1#faq)
-* [Blog](https://xeokit.io/blog.html)
-* [License](https://xeokit.io/index.html#pricing)
 
 
 

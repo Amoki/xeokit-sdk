@@ -58,8 +58,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
         this._onCanvasTouchStart = null;
         this._onCanvasTouchEnd = null;
         this._longTouchTimeoutMs = 300;
-        this._snapToEdge = cfg.snapToEdge !== false;
-        this._snapToVertex = cfg.snapToVertex !== false;
+        this._snapping = cfg.snapping !== false;
         this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
 
         this._attachPlugin(angleMeasurementsPlugin, cfg);
@@ -89,39 +88,35 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
     }
 
     /**
-     * Sets whether snap-to-vertex is enabled for this AngleMeasurementsTouchControl.
+     * Sets whether snap-to-vertex and snap-to-edge are enabled for this AngleMeasurementsMouseControl.
+     *
      * This is `true` by default.
-     * @param snapToVertex
+     *
+     * Internally, this deactivates then activates the AngleMeasurementsMouseControl when changed, which means that
+     * it will destroy any AngleMeasurements currently under construction, and incurs some overhead, since it unbinds
+     * and rebinds various input handlers.
+     *
+     * @param {boolean} snapping Whether to enable snap-to-vertex and snap-edge for this AngleMeasurementsMouseControl.
      */
-    set snapToVertex(snapToVertex) {
-        this._snapToVertex = snapToVertex;
+    set snapping(snapping) {
+        if (snapping !== this._snapping) {
+            this._snapping = snapping;
+            this.deactivate();
+            this.activate();
+        } else {
+            this._snapping = snapping;
+        }
     }
 
     /**
-     * Gets whether snap-to-vertex is enabled for this AngleMeasurementsTouchControl.
+     * Gets whether snap-to-vertex and snap-to-edge are enabled for this AngleMeasurementsMouseControl.
+     *
      * This is `true` by default.
-     * @returns {*}
+     *
+     * @returns {boolean} Whether snap-to-vertex and snap-to-edge are enabled for this AngleMeasurementsMouseControl.
      */
-    get snapToVertex() {
-        return this._snapToVertex;
-    }
-
-    /**
-     * Sets whether snap-to-edge is enabled for this AngleMeasurementsTouchControl.
-     * This is `true` by default.
-     * @param snapToEdge
-     */
-    set snapToEdge(snapToEdge) {
-        this._snapToEdge = snapToEdge;
-    }
-
-    /**
-     * Gets whether snap-to-edge is enabled for this AngleMeasurementsTouchControl.
-     * This is `true` by default.
-     * @returns {*}
-     */
-    get snapToEdge() {
-        return this._snapToEdge;
+    get snapping() {
+        return this._snapping;
     }
 
     /**
@@ -151,11 +146,11 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
 
         let touchId = null;
 
-        const disableCameraMouseControl = () => {
+        const disableCameraNavigation = () => {
             this.plugin.viewer.cameraControl.active = false;
         }
 
-        const enableCameraMouseControl = () => {
+        const enableCameraNavigation = () => {
             this.plugin.viewer.cameraControl.active = true;
         }
 
@@ -168,7 +163,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                 this._currentAngleMeasurement.destroy();
                 this._currentAngleMeasurement = null;
             }
-            enableCameraMouseControl();
+            enableCameraNavigation();
             this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
         }
 
@@ -200,8 +195,8 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     }
                     const snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapToVertex: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && snapPickResult.snapped) {
                         pointerWorldPos.set(snapPickResult.worldPos);
@@ -245,13 +240,16 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                             this._currentAngleMeasurement = plugin.createMeasurement({
                                 id: math.createUUID(),
                                 origin: {
-                                    worldPos: snapPickResult.worldPos
+                                    worldPos: snapPickResult.worldPos,
+                                    entity: snapPickResult.entity
                                 },
                                 corner: {
-                                    worldPos: snapPickResult.worldPos
+                                    worldPos: snapPickResult.worldPos,
+                                    entity: snapPickResult.entity
                                 },
                                 target: {
-                                    worldPos: snapPickResult.worldPos
+                                    worldPos: snapPickResult.worldPos,
+                                    entity: snapPickResult.entity
                                 }
                             });
                             this._currentAngleMeasurement.clickable = false;
@@ -272,7 +270,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                         // }
                         this._touchState = WAITING_FOR_ORIGIN_LONG_TOUCH_END;
                       //  console.log("touchstart: this._touchState= WAITING_FOR_ORIGIN_TOUCH_START -> WAITING_FOR_ORIGIN_LONG_TOUCH_END")
-                        disableCameraMouseControl();
+                        disableCameraNavigation();
                     }, this._longTouchTimeoutMs);
                     this._touchState = WAITING_FOR_ORIGIN_QUICK_TOUCH_END;
                     //console.log("touchstart: this._touchState= WAITING_FOR_ORIGIN_TOUCH_START -> WAITING_FOR_ORIGIN_QUICK_TOUCH_END")
@@ -309,8 +307,8 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
 
                             const snapPickResult = scene.pick({
                                 canvasPos: touchMoveCanvasPos,
-                                snapToVertex: this._snapToVertex,
-                                snapToEdge: this._snapToEdge
+                                snapToVertex: this._snapping,
+                                snapToEdge: this._snapping
                             });
                             if (snapPickResult && snapPickResult.snapped) {
                                 if (this.pointerLens) {
@@ -320,6 +318,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                                 this.pointerCircle.start(snapPickResult.snappedCanvasPos);
                                 pointerWorldPos.set(snapPickResult.worldPos);
                                 this._currentAngleMeasurement.corner.worldPos = snapPickResult.worldPos;
+                                this._currentAngleMeasurement.corner.entity = snapPickResult.entity;
                                 this._currentAngleMeasurement.originVisible = true;
                                 this._currentAngleMeasurement.originWireVisible = true;
                                 this._currentAngleMeasurement.cornerVisible = true;
@@ -341,6 +340,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                                     this.pointerCircle.start(pickResult.canvasPos);
                                     pointerWorldPos.set(pickResult.worldPos);
                                     this._currentAngleMeasurement.corner.worldPos = pickResult.worldPos;
+                                    this._currentAngleMeasurement.corner.entity = pickResult.entity;
                                     this._currentAngleMeasurement.originVisible = true;
                                     this._currentAngleMeasurement.originWireVisible = true;
                                     this._currentAngleMeasurement.cornerVisible = true;
@@ -360,7 +360,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                             this._touchState = WAITING_FOR_CORNER_LONG_TOUCH_END;
                            // console.log("touchstart: this._touchState= WAITING_FOR_CORNER_TOUCH_START -> WAITING_FOR_CORNER_LONG_TOUCH_END")
 
-                            disableCameraMouseControl();
+                            disableCameraNavigation();
 
                         }, this._longTouchTimeoutMs);
 
@@ -400,8 +400,8 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
 
                             const snapPickResult = scene.pick({
                                 canvasPos: touchMoveCanvasPos,
-                                snapToVertex: this._snapToVertex,
-                                snapToEdge: this._snapToEdge
+                                snapToVertex: this._snapping,
+                                snapToEdge: this._snapping
                             });
                             if (snapPickResult && snapPickResult.snapped) {
                                 if (this.pointerLens) {
@@ -411,6 +411,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                                 this.pointerCircle.start(snapPickResult.snappedCanvasPos);
                                 pointerWorldPos.set(snapPickResult.worldPos);
                                 this._currentAngleMeasurement.target.worldPos = snapPickResult.worldPos;
+                                this._currentAngleMeasurement.target.entity = snapPickResult.entity;
                                 this._currentAngleMeasurement.originVisible = true;
                                 this._currentAngleMeasurement.originWireVisible = true;
                                 this._currentAngleMeasurement.cornerVisible = true;
@@ -432,6 +433,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                                     this.pointerCircle.start(pickResult.canvasPos);
                                     pointerWorldPos.set(pickResult.worldPos);
                                     this._currentAngleMeasurement.target.worldPos = pickResult.worldPos;
+                                    this._currentAngleMeasurement.target.entity = pickResult.entity;
                                     this._currentAngleMeasurement.originVisible = true;
                                     this._currentAngleMeasurement.originWireVisible = true;
                                     this._currentAngleMeasurement.cornerVisible = true;
@@ -451,7 +453,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                             this._touchState = WAITING_FOR_TARGET_LONG_TOUCH_END;
                            // console.log("touchstart: this._touchState= WAITING_FOR_TARGET_TOUCH_START -> WAITING_FOR_TARGET_LONG_TOUCH_END")
 
-                            disableCameraMouseControl();
+                            disableCameraNavigation();
 
                         }, this._longTouchTimeoutMs);
 
@@ -512,8 +514,8 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     }
                     snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapToVertex: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && (snapPickResult.snapped)) {
                         if (this.pointerLens) {
@@ -561,8 +563,8 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     }
                     snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapToVertex: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && snapPickResult.worldPos) {
                         if (this.pointerLens) {
@@ -617,8 +619,8 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     }
                     snapPickResult = scene.pick({
                         canvasPos: touchMoveCanvasPos,
-                        snapToVertex: this._snapToVertex,
-                        snapToEdge: this._snapToEdge
+                        snapToVertex: this._snapping,
+                        snapToEdge: this._snapping
                     });
                     if (snapPickResult && snapPickResult.worldPos) {
                         if (this.pointerLens) {
@@ -733,7 +735,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                       //  console.log("touchend: this._touchState= WAITING_FOR_ORIGIN_QUICK_TOUCH_END -> WAITING_FOR_ORIGIN_TOUCH_START")
                     }
                 }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_ORIGIN_LONG_TOUCH_END:
@@ -751,7 +753,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                         this._touchState = WAITING_FOR_CORNER_TOUCH_START;
                        // console.log("touchend: this._touchState= WAITING_FOR_ORIGIN_LONG_TOUCH_END (picked, begin measurement) -> WAITING_FOR_CORNER_TOUCH_START")
                     }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_CORNER_QUICK_TOUCH_END: {
@@ -788,7 +790,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     }
 
                 }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_CORNER_LONG_TOUCH_END:
@@ -797,7 +799,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     }
                     this._touchState = WAITING_FOR_TARGET_TOUCH_START;
                   //  console.log("touchend: this._touchState= WAITING_FOR_CORNER_LONG_TOUCH_END  -> WAITING_FOR_ORIGIN_TOUCH_START")
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_TARGET_QUICK_TOUCH_END: {
@@ -833,7 +835,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                     this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
                    // console.log("touchend: this._touchState= WAITING_FOR_TARGET_TOUCH_START -> WAITING_FOR_ORIGIN_TOUCH_START")
                 }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
 
                 case WAITING_FOR_TARGET_LONG_TOUCH_END:
@@ -854,7 +856,7 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
                         this._touchState = WAITING_FOR_ORIGIN_TOUCH_START;
                        // console.log("touchend: this._touchState= WAITING_FOR_TARGET_LONG_TOUCH_END  -> WAITING_FOR_ORIGIN_TOUCH_START")
                     }
-                    enableCameraMouseControl();
+                    enableCameraNavigation();
                     break;
             }
 
@@ -904,6 +906,15 @@ export class AngleMeasurementsTouchControl extends AngleMeasurementsControl {
             this._currentAngleMeasurement.destroy();
             this._currentAngleMeasurement = null;
         }
+    }
+
+    /**
+     * Gets the {@link AngleMeasurement} under construction by this AngleMeasurementsTouchControl, if any.
+     *
+     * @returns {null|AngleMeasurement}
+     */
+    get currentMeasurement() {
+        return this._currentAngleMeasurement;
     }
 
     /**

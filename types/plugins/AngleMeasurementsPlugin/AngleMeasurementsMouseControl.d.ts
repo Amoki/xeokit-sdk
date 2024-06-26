@@ -1,7 +1,7 @@
-import { AngleMeasurementsControl } from "./AngleMeasurementsControl.js";
-import { math } from "../../viewer/scene/math/math.js";
+import {AngleMeasurementsControl} from "./AngleMeasurementsControl.js";
 import {AngleMeasurementsPlugin} from "./AngleMeasurementsPlugin";
-import {PointerLens} from "../../extras/PointerLens/PointerLens";
+import {PointerLens} from "../../extras/";
+import {AngleMeasurement} from "./AngleMeasurement";
 
 /**
  * Creates {@link AngleMeasurement}s in an {@link AngleMeasurementsPlugin} from mouse input.
@@ -43,11 +43,13 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
      * @param {AngleMeasurementsPlugin} angleMeasurementsPlugin The AngleMeasurementsPlugin to control.
      * @param {Object} [cfg] Configuration options.
      * @param {PointerLens} [cfg.pointerLens] A PointerLens to use for providing a magnified view of the cursor when snapping is enabled.
+     * @param {function} [cfg.canvasToPagePos] Optional function to map canvas-space coordinates to page coordinates.
      * @param {boolean} [cfg.snapping=true] Whether to initially enable snap-to-vertex and snap-to-edge for this AngleMeasurementsMouseControl.
      */
     constructor(angleMeasurementsPlugin: AngleMeasurementsPlugin, cfg?: {
         pointerLens?: PointerLens;
         snapping?: boolean;
+        canvasToPagePos? : Function;
     });
 
     /**
@@ -85,6 +87,13 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
      * Resets this AngleMeasurementsMouseControl, destroying any AngleMeasurement under construction.
      */
     reset(): void;
+
+    /**
+     * Gets the {@link AngleMeasurement} under construction by this AngleMeasurementsMouseControl, if any.
+     *
+     * @returns {null|AngleMeasurement}
+     */
+    get currentMeasurement() : AngleMeasurement
 
     /**
      * Destroys this AngleMeasurementsMouseControl.

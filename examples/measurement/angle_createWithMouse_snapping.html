@@ -120,7 +120,7 @@
 </body>
 <script type="module">
 
-    import {Viewer, XKTLoaderPlugin, AngleMeasurementsPlugin, ContextMenu, AngleMeasurementsMouseControl, PointerLens} from "../../dist/xeokit-sdk.es.js";
+    import {Viewer, XKTLoaderPlugin, ContextMenu, PointerLens, AngleMeasurementsPlugin, AngleMeasurementsMouseControl, AngleMeasurementEditMouseControl} from "../../dist/xeokit-sdk.min.es.js";
 
     const viewer = new Viewer({
         canvasId: "myCanvas",
@@ -130,6 +130,8 @@
     viewer.camera.eye = [-3.93, 2.85, 27.01];
     viewer.camera.look = [4.40, 3.72, 8.89];
     viewer.camera.up = [-0.01, 0.99, 0.039];
+
+    viewer.cameraControl.panRightClick = false; // Prevents right-click-drag panning interfering with ContextMenus
 
     //------------------------------------------------------------------------------------------------------------------
     // Load a model
@@ -151,23 +153,62 @@
     // Create a context menu to delete and configure measurements
     //------------------------------------------------------------------------------------------------------------------
 
+    let endMeasurementEdit = null;
+
     const angleMeasurementsContextMenu = new ContextMenu({
         items: [
 
             [
                 {
                     getTitle: (context) => {
-                        return context.measurement.labelsVisible ? "Hide Labels" : "Show Labels";
+                        return context.angleMeasurement.labelsVisible ? "Hide Labels" : "Show Labels";
                     },
                     doAction: function (context) {
-                        context.measurement.labelsVisible = !context.measurement.labelsVisible;
+                        context.angleMeasurement.labelsVisible = !context.angleMeasurement.labelsVisible;
                     }
-                }
+                },
+                {
+                    title: "Edit",
+                    doAction: function (context) {
+                        angleMeasurementsMouseControl.deactivate();
+                        const measurement = context.angleMeasurement;
+                        const edit = new AngleMeasurementEditMouseControl(measurement, {
+                            pointerLens: new PointerLens(viewer),
+                            snapping: true
+                        });
+                        edit.on("edited", () => console.log("edited", measurement.id));
+                        endMeasurementEdit = () => {
+                            edit.deactivate();
+                            endMeasurementEdit = null;
+                        };
+                    }
+                 }
             ], [
                 {
                     title: "Delete Measurement",
                     doAction: function (context) {
-                        context.measurement.destroy();
+                        context.angleMeasurement.destroy();
+                    }
+                }
+            ],
+            [
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    doAction: function () {
+                        angleMeasurementsMouseControl.reset();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "End Editing";
+                    },
+                    getEnabled: function () {
+                        return !!endMeasurementEdit;
+                    },
+                    doAction: function () {
+                        endMeasurementEdit();
                     }
                 }
             ]
@@ -176,8 +217,8 @@
     });
 
     angleMeasurementsContextMenu.on("hidden", () => {
-        if (angleMeasurementsContextMenu.context.measurement) {
-            angleMeasurementsContextMenu.context.measurement.setHighlighted(false);
+        if (angleMeasurementsContextMenu.context.angleMeasurement) {
+            angleMeasurementsContextMenu.context.angleMeasurement.setHighlighted(false);
         }
     });
 
@@ -189,6 +230,27 @@
         zIndex: 100000 // If set, the wires, dots and labels will have this zIndex (+1 for dots and +2 for labels).
     });
 
+    angleMeasurementsPlugin.on("measurementStart", (angleMeasurement) => {
+        console.log("measurementStart");
+        console.log("origin", angleMeasurement.origin.entity);
+        console.log("corner", angleMeasurement.corner.entity);
+        console.log("target", angleMeasurement.target.entity);
+    });
+
+    angleMeasurementsPlugin.on("measurementEnd", (angleMeasurement) => {
+        console.log("measurementEnd");
+        console.log("origin", angleMeasurement.origin.entity);
+        console.log("corner", angleMeasurement.corner.entity);
+        console.log("target", angleMeasurement.target.entity);
+    });
+
+    angleMeasurementsPlugin.on("measurementCancel", (angleMeasurement) => {
+        console.log("measurementCancel");
+        console.log("origin", angleMeasurement.origin.entity);
+        console.log("corner", angleMeasurement.corner.entity);
+        console.log("target", angleMeasurement.target.entity);
+    });
+
     const angleMeasurementsMouseControl  = new AngleMeasurementsMouseControl(angleMeasurementsPlugin, {
         pointerLens : new PointerLens(viewer)
     })
@@ -198,21 +260,30 @@
     angleMeasurementsMouseControl.activate();
 
     angleMeasurementsPlugin.on("mouseOver", (e) => {
-        e.measurement.setHighlighted(true);
+        if (endMeasurementEdit) {
+            return;
+        }
+        e.angleMeasurement.setHighlighted(true);
     });
 
     angleMeasurementsPlugin.on("mouseLeave", (e) => {
-        if (angleMeasurementsContextMenu.shown && angleMeasurementsContextMenu.context.measurement.id === e.measurement.id) {
+        if (endMeasurementEdit) {
             return;
         }
-        e.measurement.setHighlighted(false);
+        if (angleMeasurementsContextMenu.shown && angleMeasurementsContextMenu.context.angleMeasurement.id === e.angleMeasurement.id) {
+            return;
+        }
+        e.angleMeasurement.setHighlighted(false);
     });
 
     angleMeasurementsPlugin.on("contextMenu", (e) => {
+        if (endMeasurementEdit) {
+            return;
+        }
         angleMeasurementsContextMenu.context = { // Must set context before showing menu
             viewer: viewer,
             angleMeasurementsPlugin: angleMeasurementsPlugin,
-            measurement: e.measurement
+            angleMeasurement: e.angleMeasurement
         };
         angleMeasurementsContextMenu.show(e.event.clientX, e.event.clientY);
         e.event.preventDefault();
@@ -491,6 +562,25 @@
                                 doAction: function (context) {
                                     angleMeasurementsPlugin.clear();
                                 }
+                            },
+                            {
+                                getTitle: () => {
+                                    return "Cancel Measurement";
+                                },
+                                doAction: function () {
+                                    angleMeasurementsMouseControl.reset();
+                                }
+                            },
+                            {
+                                getTitle: () => {
+                                    return "End Editing";
+                                },
+                                getEnabled: function () {
+                                    return !!endMeasurementEdit;
+                                },
+                                doAction: function () {
+                                    endMeasurementEdit();
+                                }
                             }
                         ]
                     ]
@@ -686,6 +776,28 @@
                                 doAction: function (context) {
                                     angleMeasurementsPlugin.clear();
                                 }
+                            },
+                            {
+                                getTitle: () => {
+                                    return "Cancel Measurement";
+                                },
+                                getEnabled: function () {
+                                    return (!!angleMeasurementsPlugin.currentMeasurement);
+                                },
+                                doAction: function () {
+                                    angleMeasurementsMouseControl.reset();
+                                }
+                            },
+                            {
+                                getTitle: () => {
+                                    return "End Editing";
+                                },
+                                getEnabled: function () {
+                                    return !!endMeasurementEdit;
+                                },
+                                doAction: function () {
+                                    endMeasurementEdit();
+                                }
                             }
                         ]
                     ]
@@ -694,31 +806,50 @@
         ]
     });
 
-    viewer.cameraControl.on("rightClick", (e) => {
-
+    viewer.scene.canvas.canvas.addEventListener('contextmenu', (event) => {
+        const canvasPos = getCanvasPosFromEvent(event);
         const hit = viewer.scene.pick({
-            canvasPos: e.canvasPos
+            canvasPos
         });
-
         if (hit && hit.entity.isObject) {
-
             objectContextMenu.context = { // Must set context before showing menu
-                viewer: viewer,
+                viewer,
                 entity: hit.entity
             };
-
-            objectContextMenu.show(e.pagePos[0], e.pagePos[1]);
+            objectContextMenu.show(event.pageX, event.pageY);
         } else {
-
             canvasContextMenu.context = { // Must set context before showing menu
-                viewer: viewer
+                viewer
             };
-
-            canvasContextMenu.show(e.pagePos[0], e.pagePos[1]);
+            canvasContextMenu.show(event.pageX, event.pageY);
         }
-
-        e.event.preventDefault();
+        event.preventDefault();
     });
+
+    const getCanvasPosFromEvent = function (event) {
+        const canvasPos = [];
+        if (!event) {
+            event = window.event;
+            canvasPos[0] = event.x;
+            canvasPos[1] = event.y;
+        } else {
+            let element = event.target;
+            let totalOffsetLeft = 0;
+            let totalOffsetTop = 0;
+            let totalScrollX = 0;
+            let totalScrollY = 0;
+            while (element.offsetParent) {
+                totalOffsetLeft += element.offsetLeft;
+                totalOffsetTop += element.offsetTop;
+                totalScrollX += element.scrollLeft;
+                totalScrollY += element.scrollTop;
+                element = element.offsetParent;
+            }
+            canvasPos[0] = event.pageX + totalScrollX - totalOffsetLeft;
+            canvasPos[1] = event.pageY + totalScrollY - totalOffsetTop;
+        }
+        return canvasPos;
+    };
 
 
 </script>

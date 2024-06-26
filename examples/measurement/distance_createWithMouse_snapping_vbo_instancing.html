@@ -142,7 +142,7 @@
         DistanceMeasurementsPlugin,
         DistanceMeasurementsMouseControl,
         SceneModel,
-        PointerLens} from "../../dist/xeokit-sdk.es.js";
+        PointerLens} from "../../dist/xeokit-sdk.min.es.js";
 
     //------------------------------------------------------------------------------------------------------------------
     // Create a Viewer and arrange the camera
@@ -158,6 +158,8 @@
 
     viewer.cameraControl.navMode = "orbit";
     viewer.cameraControl.followPointer = true;
+
+    viewer.cameraControl.panRightClick = false; // Prevents right-click-drag panning interfering with ContextMenus
 
     viewer.scene.pointsMaterial.roundPoints = true;
     viewer.scene.pointsMaterial.perspectivePoints = true;
@@ -368,14 +370,14 @@
     const distanceMeasurementsPlugin = new DistanceMeasurementsPlugin(viewer);
 
     distanceMeasurementsPlugin.on("mouseOver", (e) => {
-        e.measurement.setHighlighted(true);
+        e.distanceMeasurement.setHighlighted(true);
     });
 
     distanceMeasurementsPlugin.on("mouseLeave", (e) => {
-        if (distanceMeasurementsContextMenu.shown && distanceMeasurementsContextMenu.context.measurement.id === e.measurement.id) {
+        if (distanceMeasurementsContextMenu.shown && distanceMeasurementsContextMenu.context.distanceMeasurement.id === e.distanceMeasurement.id) {
             return;
         }
-        e.measurement.setHighlighted(false);
+        e.distanceMeasurement.setHighlighted(false);
     });
     
     const distanceMeasurementsMouseControl  = new DistanceMeasurementsMouseControl(distanceMeasurementsPlugin, {
@@ -409,7 +411,39 @@
                 },
                 {
                     getTitle: (context) => {
-                        return context.distanceMeasurement.labelsVisible ? "Hide Labels" : "Show Labels";
+                        return context.distanceMeasurement.xLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable X Label" : "Enable X Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.xLabelEnabled = !context.distanceMeasurement.xLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.yLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Y Label" : "Enable Y Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.yLabelEnabled = !context.distanceMeasurement.yLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.zLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Z Label" : "Enable Z Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.zLabelEnabled = !context.distanceMeasurement.zLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.lengthLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Length Label" : "Enable Length Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.lengthLabelEnabled = !context.distanceMeasurement.lengthLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.labelsVisible ? "Hide All Labels" : "Show All Labels";
                     },
                     doAction: function (context) {
                         context.distanceMeasurement.labelsVisible = !context.distanceMeasurement.labelsVisible;
@@ -423,6 +457,17 @@
                     },
                     doAction: function (context) {
                         context.distanceMeasurementsPlugin.clear();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    getEnabled: function () {
+                        return (!!distanceMeasurementsMouseControl.currentMeasurement);
+                    },
+                    doAction: function () {
+                        distanceMeasurementsMouseControl.reset();
                     }
                 }
             ]
@@ -448,12 +493,23 @@
             [
                 {
                     getTitle: (context) => {
-                        return distanceMeasurementsPlugin.control.active ? "Deactivate Control" : "Activate Control";
+                        return distanceMeasurementsMouseControl.active ? "Deactivate Control" : "Activate Control";
                     },
                     doAction: function (context) {
-                        distanceMeasurementsPlugin.control.active
-                            ? distanceMeasurementsPlugin.control.deactivate()
-                            : distanceMeasurementsPlugin.control.activate();
+                        distanceMeasurementsMouseControl.active
+                            ? distanceMeasurementsMouseControl.deactivate()
+                            : distanceMeasurementsMouseControl.activate();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    getEnabled: function () {
+                        return (!!distanceMeasurementsMouseControl.currentMeasurement);
+                    },
+                    doAction: function () {
+                        distanceMeasurementsMouseControl.reset();
                     }
                 }
             ]

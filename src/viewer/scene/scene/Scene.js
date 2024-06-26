@@ -16,6 +16,7 @@ import {EmphasisMaterial} from '../materials/EmphasisMaterial.js';
 import {EdgeMaterial} from '../materials/EdgeMaterial.js';
 import {Metrics} from "../metriqs/Metriqs.js";
 import {SAO} from "../postfx/SAO.js";
+import {CrossSections} from "../postfx/CrossSections.js";
 import {PointsMaterial} from "../materials/PointsMaterial.js";
 import {LinesMaterial} from "../materials/LinesMaterial.js";
 import {LOD} from "../lod/LOD.js";
@@ -843,6 +844,14 @@ class Scene extends Component {
             enabled: cfg.saoEnabled
         });
 
+        /** Configures Cross Sections for this Scene.
+         * @type {CrossSections}
+         * @final
+         */
+        this.crossSections = new CrossSections(this, {
+
+        });
+
         this.ticksPerRender = cfg.ticksPerRender;
         this.ticksPerOcclusionTest = cfg.ticksPerOcclusionTest;
         this.passes = cfg.passes;
@@ -858,6 +867,7 @@ class Scene extends Component {
         this._pbrEnabled = !!cfg.pbrEnabled;
         this._colorTextureEnabled = (cfg.colorTextureEnabled !== false);
         this._dtxEnabled = !!cfg.dtxEnabled;
+        this._markerZOffset = cfg.markerZOffset;
 
         // Register Scene on xeokit
         // Do this BEFORE we add components below
@@ -1435,6 +1445,22 @@ class Scene extends Component {
      */
     get colorTextureEnabled() {
         return this._colorTextureEnabled;
+    }
+
+    /**
+     * Gets the Z value of offset for Marker's OcclusionTester.
+     * The closest the value is to 0.000 the more precise OcclusionTester will be, but at the same time the less
+     * precise it will behave for Markers that are located exactly on the Surface.
+     *
+     * Default is ````-0.001````.
+     *
+     * @returns {Number} Z offset for Marker
+     */
+    get markerZOffset() {
+        if (this._markerZOffset == null) {
+            return -0.001;
+        }
+        return this._markerZOffset;
     }
 
     /**
@@ -2282,11 +2308,9 @@ class Scene extends Component {
      * @param {Number[]} [params.origin] World-space ray origin when ray-picking. Ignored when canvasPos given.
      * @param {Number[]} [params.direction] World-space ray direction when ray-picking. Also indicates the length of the ray. Ignored when canvasPos given.
      * @param {Number[]} [params.matrix] 4x4 transformation matrix to define the World-space ray origin and direction, as an alternative to ````origin```` and ````direction````.
-     * @param {String[]} [params.includeEntities] IDs of {@link Entity}s to restrict picking to. When given, ignores {@link Entity}s whose IDs are not in this list.
-     * @param {String[]} [params.excludeEntities] IDs of {@link Entity}s to ignore. When given, will pick *through* these {@link Entity}s, as if they were not there.
-     * @param {Number} [params.snapRadius=30] The snap radius, in canvas pixels
-     * @param {boolean} [params.snapToVertex=true] Whether to snap to vertex.
-     * @param {boolean} [params.snapToEdge=true] Whether to snap to edge.
+     * @param {Number} [params.snapRadius=30] The snap radius, in canvas pixels.
+     * @param {boolean} [params.snapToVertex=true] Whether to snap to vertex. Only works when `canvasPos` given.
+     * @param {boolean} [params.snapToEdge=true] Whether to snap to edge. Only works when `canvasPos` given.
      * @param {PickResult} [pickResult] Holds the results of the pick attempt. Will use the Scene's singleton PickResult if you don't supply your own.
      * @returns {PickResult} Holds results of the pick attempt, returned when an {@link Entity} is picked, else null. See method comments for description.
      */
@@ -2295,6 +2319,11 @@ class Scene extends Component {
         if (this.canvas.boundary[2] === 0 || this.canvas.boundary[3] === 0) {
             this.error("Picking not allowed while canvas has zero width or height");
             return null;
+        }
+
+        if ((params.snapToVertex || params.snapToEdge) && !params.canvasPos) {
+            this.error("Scene.snapPick() `canvasPos` parameter expected for `snapToVertex:true` or `snapToEdge:true`");
+            return;
         }
 
         params = params || {};
@@ -2344,7 +2373,7 @@ class Scene extends Component {
 
     /**
      * @param {Object} params Picking parameters.
-     * @param {Number[]} [params.canvasPos] Canvas-space coordinates. When ray-picking, this will override the **origin** and ** direction** parameters and will cause the ray to be fired through the canvas at this position, directly along the negative View-space Z-axis.
+     * @param {Number[]} params.canvasPos Canvas-space coordinates.
      * @param {Number} [params.snapRadius=30] The snap radius, in canvas pixels
      * @param {boolean} [params.snapToVertex=true] Whether to snap to vertex.
      * @param {boolean} [params.snapToEdge=true] Whether to snap to edge.
@@ -2354,6 +2383,10 @@ class Scene extends Component {
         if (undefined === this._warnSnapPickDeprecated) {
             this._warnSnapPickDeprecated = true;
             this.warn("Scene.snapPick() is deprecated since v2.4.2 - use Scene.pick() instead")
+        }
+        if (!params.canvasPos) {
+            this.error("Scene.snapPick() canvasPos parameter expected");
+            return;
         }
         return this._renderer.snapPick(
             params.canvasPos,

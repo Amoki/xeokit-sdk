@@ -141,10 +141,12 @@ function parseGLTF(plugin, src, gltf, metaModelJSON, options, sceneModel, ok) {
     }).then((gltfData) => {
         const ctx = {
             src: src,
+            entityId: options.entityId,
             metaModelCorrections: metaModelJSON ? getMetaModelCorrections(metaModelJSON) : null,
             loadBuffer: options.loadBuffer,
             basePath: options.basePath,
             handlenode: options.handlenode,
+            backfaces: !!options.backfaces,
             gltfData: gltfData,
             scene: sceneModel.scene,
             plugin: plugin,
@@ -353,7 +355,8 @@ function loadMaterialAttributes(ctx, material) { // Substitute RGBA for material
         color: new Float32Array([1, 1, 1, 1]),
         opacity: 1,
         metallic: 0,
-        roughness: 1
+        roughness: 1,
+        doubleSided : true
     };
     if (extensions) {
         const specularPBR = extensions["KHR_materials_pbrSpecularGlossiness"];
@@ -404,6 +407,7 @@ function loadMaterialAttributes(ctx, material) { // Substitute RGBA for material
             materialAttributes.roughness = roughnessFactor;
         }
     }
+    materialAttributes.doubleSided = (material.doubleSided !== false);
     return materialAttributes;
 }
 
@@ -517,6 +521,20 @@ function loadNode(ctx, node, depth, matrix) {
                     id: sceneModel.id + "." + ctx.numObjects++
                 };
 
+                const material = primitive.material;
+                if (material) {
+                    meshCfg.textureSetId = material._textureSetId;
+                    meshCfg.color = material._attributes.color;
+                    meshCfg.opacity = material._attributes.opacity;
+                    meshCfg.metallic = material._attributes.metallic;
+                    meshCfg.roughness = material._attributes.roughness;
+                } else {
+                    meshCfg.color = new Float32Array([1.0, 1.0, 1.0]);
+                    meshCfg.opacity = 1.0;
+                }
+
+                const backfaces = ((ctx.backfaces !== false) || (material && material.doubleSided !== false));
+
                 switch (primitive.mode) {
                     case 0: // POINTS
                         meshCfg.primitive = "points";
@@ -531,16 +549,16 @@ function loadNode(ctx, node, depth, matrix) {
                         meshCfg.primitive = "lines";
                         break;
                     case 4: // TRIANGLES
-                        meshCfg.primitive = "triangles";
+                        meshCfg.primitive = backfaces ? "triangles" : "solid";
                         break;
                     case 5: // TRIANGLE_STRIP
-                        meshCfg.primitive = "triangles";
+                        meshCfg.primitive = backfaces ? "triangles" : "solid";
                         break;
                     case 6: // TRIANGLE_FAN
-                        meshCfg.primitive = "triangles";
+                        meshCfg.primitive = backfaces ? "triangles" : "solid";
                         break;
                     default:
-                        meshCfg.primitive = "triangles";
+                        meshCfg.primitive = backfaces ? "triangles" : "solid";
                 }
 
                 const POSITION = primitive.attributes.POSITION;
@@ -569,40 +587,9 @@ function loadNode(ctx, node, depth, matrix) {
                     meshCfg.origin = origin;
                 }
 
-                const material = primitive.material;
-                if (material) {
-                    meshCfg.textureSetId = material._textureSetId;
-                    meshCfg.color = material._attributes.color;
-                    meshCfg.opacity = material._attributes.opacity;
-                    meshCfg.metallic = material._attributes.metallic;
-                    meshCfg.roughness = material._attributes.roughness;
-                } else {
-                    meshCfg.color = new Float32Array([1.0, 1.0, 1.0]);
-                    meshCfg.opacity = 1.0;
-                }
-                // if (createEntity) {
-                //     if (createEntity.colorize) {
-                //         meshCfg.color = createEntity.colorize;
-                //     }
-                //     if (createEntity.opacity !== undefined && createEntity.opacity !== null) {
-                //         meshCfg.opacity = createEntity.opacity;
-                //     }
-                // }
-
                 sceneModel.createMesh(meshCfg);
                 deferredMeshIds.push(meshCfg.id);
             }
-            // if (createEntity) {
-            //     sceneModel.createEntity(utils.apply(createEntity, {
-            //         meshIds: deferredMeshIds,
-            //         isObject: true
-            //     }));
-            // } else {
-            //     sceneModel.createEntity({
-            //         meshIds: deferredMeshIds,
-            //         isObject: true
-            //     });
-            // }
         }
     }
 
@@ -616,48 +603,62 @@ function loadNode(ctx, node, depth, matrix) {
 
     // Post-order visit scene node
 
-    const nodeName = node.name;
-    if (((nodeName !== undefined && nodeName !== null) || depth === 0) && deferredMeshIds.length > 0) {
-        if (nodeName === undefined || nodeName === null) {
-            ctx.log(`Warning: 'name' properties not found on glTF scene nodes - will randomly-generate object IDs in XKT`);
-        }
-        let entityId = nodeName; // Fall back on generated ID when `name` not found on glTF scene node(s)
-        // if (!!entityId && sceneModel.entities[entityId]) {
-        //     ctx.log(`Warning: Two or more glTF nodes found with same 'name' attribute: '${nodeName} - will randomly-generating an object ID in XKT`);
-        // }
-        // while (!entityId || sceneModel.entities[entityId]) {
-        //     entityId = "entity-" + ctx.nextId++;
-        // }
-        if (ctx.metaModelCorrections) {
-            // Merging meshes into XKTObjects that map to metaobjects
-            const rootMetaObject = ctx.metaModelCorrections.eachChildRoot[entityId];
-            if (rootMetaObject) {
-                const rootMetaObjectStats = ctx.metaModelCorrections.eachRootStats[rootMetaObject.id];
-                rootMetaObjectStats.countChildren++;
-                if (rootMetaObjectStats.countChildren >= rootMetaObjectStats.numChildren) {
-                    sceneModel.createEntity({
-                        id: rootMetaObject.id,
-                        meshIds: deferredMeshIds
-                    });
-                    deferredMeshIds.length = 0;
-                }
-            } else {
-                const metaObject = ctx.metaModelCorrections.metaObjectsMap[entityId];
-                if (metaObject) {
-                    sceneModel.createEntity({
-                        id: entityId,
-                        meshIds: deferredMeshIds
-                    });
-                    deferredMeshIds.length = 0;
-                }
-            }
-        } else {
-            // Create an XKTObject from the meshes at each named glTF node, don't care about metaobjects
+    if (ctx.entityId) {
+        if (depth ===0) {
             sceneModel.createEntity({
-                id: entityId,
-                meshIds: deferredMeshIds
+                id: ctx.entityId,
+                meshIds: deferredMeshIds,
+                isObject: true
             });
             deferredMeshIds.length = 0;
+        }
+    } else {
+        const nodeName = node.name;
+        if (((nodeName !== undefined && nodeName !== null) || depth === 0) && deferredMeshIds.length > 0) {
+            if (nodeName === undefined || nodeName === null) {
+                ctx.log(`Warning: 'name' properties not found on glTF scene nodes - will randomly-generate object IDs in XKT`);
+            }
+            let entityId = nodeName; // Fall back on generated ID when `name` not found on glTF scene node(s)
+            // if (!!entityId && sceneModel.entities[entityId]) {
+            //     ctx.log(`Warning: Two or more glTF nodes found with same 'name' attribute: '${nodeName} - will randomly-generating an object ID in XKT`);
+            // }
+            // while (!entityId || sceneModel.entities[entityId]) {
+            //     entityId = "entity-" + ctx.nextId++;
+            // }
+            if (ctx.metaModelCorrections) {
+                // Merging meshes into XKTObjects that map to metaobjects
+                const rootMetaObject = ctx.metaModelCorrections.eachChildRoot[entityId];
+                if (rootMetaObject) {
+                    const rootMetaObjectStats = ctx.metaModelCorrections.eachRootStats[rootMetaObject.id];
+                    rootMetaObjectStats.countChildren++;
+                    if (rootMetaObjectStats.countChildren >= rootMetaObjectStats.numChildren) {
+                        sceneModel.createEntity({
+                            id: rootMetaObject.id,
+                            meshIds: deferredMeshIds,
+                            isObject: true
+                        });
+                        deferredMeshIds.length = 0;
+                    }
+                } else {
+                    const metaObject = ctx.metaModelCorrections.metaObjectsMap[entityId];
+                    if (metaObject) {
+                        sceneModel.createEntity({
+                            id: entityId,
+                            meshIds: deferredMeshIds,
+                            isObject: true
+                        });
+                        deferredMeshIds.length = 0;
+                    }
+                }
+            } else {
+                // Create an XKTObject from the meshes at each named glTF node, don't care about metaobjects
+                sceneModel.createEntity({
+                    id: entityId,
+                    meshIds: deferredMeshIds,
+                    isObject: true
+                });
+                deferredMeshIds.length = 0;
+            }
         }
     }
 }

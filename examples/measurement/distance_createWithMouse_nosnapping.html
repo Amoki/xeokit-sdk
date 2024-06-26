@@ -1,15 +1,15 @@
 <!doctype html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>xeokit Example</title>
-    <link href="../css/pageStyle.css" rel="stylesheet"/>
+    <link href="../css/pageStyle.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"></script>
 
     <style>
-
         .viewer-ruler-wire-highlighted {
             border: 2px solid white !important;
         }
@@ -76,51 +76,50 @@
             background: #eeeeee;
             font-weight: normal;
         }
-
     </style>
 </head>
-<body>
-<input type="checkbox" id="info-button"/>
-<label for="info-button" class="info-button"><i class="far fa-3x fa-question-circle"></i></label>
-<canvas id="myCanvas"></canvas>
-<div class="slideout-sidebar">
-    <img class="info-icon" src="../../assets/images/measure_distance_icon.png"/>
-    <h1>DistanceMeasurementPlugin with DistanceMeasurementsMouseControl and PointerLens</h1>
-    <h2>Click on the model to create distance measurements, with no vertex and edge snapping</h2>
-    <p>In this example, we're loading a BIM model from the file system, then creating distance measurements wherever the
-        user clicks on the model with the mouse.</p>
-    <h3>Components Used</h3>
-    <ul>
-        <li>
-            <a href="../../docs/class/src/viewer/Viewer.js~Viewer.html"
-               target="_other">Viewer</a>
-        </li>
-        <li>
-            <a href="../../docs/class/src/plugins/DistanceMeasurementsPlugin/DistanceMeasurementsPlugin.js~DistanceMeasurementsPlugin.html"
-               target="_other">DistanceMeasurementsPlugin</a>
-        </li>
-        <li>
-            <a href="../../docs/class/src/plugins/DistanceMeasurementsPlugin/DistanceMeasurementsMouseControl.js~DistanceMeasurementsMouseControl.html"
-               target="_other">DistanceMeasurementsMouseControl</a>
-        </li>
-        <li>
-            <a href="../../docs/class/src/extras/PointerLens/PointerLens.js~PointerLens.html"
-               target="_other">PointerLens</a>
-        </li>
-        <li>
-            <a href="../../docs/class/src/plugins/XKTLoaderPlugin/XKTLoaderPlugin.js~XKTLoaderPlugin.html"
-               target="_other">XKTLoaderPlugin</a>
-        </li>
-    </ul>
 
-    <h3>Assets</h3>
-    <ul>
-        <li>
-            <a href="http://openifcmodel.cs.auckland.ac.nz/Model/Details/274"
-               target="_other">Model source</a>
-        </li>
-    </ul>
-</div>
+<body>
+    <input type="checkbox" id="info-button" />
+    <label for="info-button" class="info-button"><i class="far fa-3x fa-question-circle"></i></label>
+    <canvas id="myCanvas"></canvas>
+    <div class="slideout-sidebar">
+        <img class="info-icon" src="../../assets/images/measure_distance_icon.png" />
+        <h1>DistanceMeasurementPlugin with DistanceMeasurementsMouseControl and PointerLens</h1>
+        <h2>Click on the model to create distance measurements, with no vertex and edge snapping</h2>
+        <p>In this example, we're loading a BIM model from the file system, then creating distance measurements wherever
+            the
+            user clicks on the model with the mouse.</p>
+        <h3>Components Used</h3>
+        <ul>
+            <li>
+                <a href="../../docs/class/src/viewer/Viewer.js~Viewer.html" target="_other">Viewer</a>
+            </li>
+            <li>
+                <a href="../../docs/class/src/plugins/DistanceMeasurementsPlugin/DistanceMeasurementsPlugin.js~DistanceMeasurementsPlugin.html"
+                    target="_other">DistanceMeasurementsPlugin</a>
+            </li>
+            <li>
+                <a href="../../docs/class/src/plugins/DistanceMeasurementsPlugin/DistanceMeasurementsMouseControl.js~DistanceMeasurementsMouseControl.html"
+                    target="_other">DistanceMeasurementsMouseControl</a>
+            </li>
+            <li>
+                <a href="../../docs/class/src/extras/PointerLens/PointerLens.js~PointerLens.html"
+                    target="_other">PointerLens</a>
+            </li>
+            <li>
+                <a href="../../docs/class/src/plugins/XKTLoaderPlugin/XKTLoaderPlugin.js~XKTLoaderPlugin.html"
+                    target="_other">XKTLoaderPlugin</a>
+            </li>
+        </ul>
+
+        <h3>Assets</h3>
+        <ul>
+            <li>
+                <a href="http://openifcmodel.cs.auckland.ac.nz/Model/Details/274" target="_other">Model source</a>
+            </li>
+        </ul>
+    </div>
 </body>
 <script type="module">
 
@@ -128,7 +127,7 @@
     // Import the modules we need for this example
     //------------------------------------------------------------------------------------------------------------------
 
-    import {Viewer, XKTLoaderPlugin, ContextMenu, DistanceMeasurementsPlugin, DistanceMeasurementsMouseControl, PointerLens} from "../../dist/xeokit-sdk.es.js";
+    import { Viewer, XKTLoaderPlugin, ContextMenu, DistanceMeasurementsPlugin, DistanceMeasurementsMouseControl, PointerLens } from "../../dist/xeokit-sdk.min.es.js";
 
     //------------------------------------------------------------------------------------------------------------------
     // Create a Viewer and arrange the camera
@@ -143,6 +142,7 @@
     viewer.camera.look = [4.40, 3.72, 8.89];
     viewer.camera.up = [-0.01, 0.99, 0.039];
 
+    viewer.cameraControl.panRightClick = false; // Prevents right-click-drag panning interfering with ContextMenus
 
     //------------------------------------------------------------------------------------------------------------------
     // Vertex-snapping mode
@@ -160,10 +160,11 @@
     const sceneModel = xktLoader.load({
         id: "myModel",
         src: "../../assets/models/xkt/v10/glTF-Embedded/Duplex_A_20110505.glTFEmbedded.xkt",
+        rotation: [0, 50, 0],
         edges: true
     });
 
-    sceneModel.on("loaded", ()=>{
+    sceneModel.on("loaded", () => {
         viewer.cameraFlight.jumpTo(sceneModel);
     });
 
@@ -171,10 +172,10 @@
     // DistanceMeasurementsPlugin, DistanceMeasurementsMouseControl and PointerLens
     //------------------------------------------------------------------------------------------------------------------
 
-    const distanceMeasurements = new DistanceMeasurementsPlugin(viewer);
+    const distanceMeasurements = new DistanceMeasurementsPlugin(viewer, {});
 
-    const distanceMeasurementsMouseControl  = new DistanceMeasurementsMouseControl(distanceMeasurements, {
-        pointerLens : new PointerLens(viewer)
+    const distanceMeasurementsMouseControl = new DistanceMeasurementsMouseControl(distanceMeasurements, {
+        pointerLens: new PointerLens(viewer)
     })
 
     distanceMeasurementsMouseControl.snapping = false;
@@ -204,7 +205,39 @@
                 },
                 {
                     getTitle: (context) => {
-                        return context.distanceMeasurement.labelsVisible ? "Hide Labels" : "Show Labels";
+                        return context.distanceMeasurement.xLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable X Label" : "Enable X Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.xLabelEnabled = !context.distanceMeasurement.xLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.yLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Y Label" : "Enable Y Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.yLabelEnabled = !context.distanceMeasurement.yLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.zLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Z Label" : "Enable Z Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.zLabelEnabled = !context.distanceMeasurement.zLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.lengthLabelEnabled && context.distanceMeasurement.labelsVisible ? "Disable Length Label" : "Enable Length Label";
+                    },
+                    doAction: function (context) {
+                        context.distanceMeasurement.lengthLabelEnabled = !context.distanceMeasurement.lengthLabelEnabled;
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return context.distanceMeasurement.labelsVisible ? "Hide All Labels" : "Show All Labels";
                     },
                     doAction: function (context) {
                         context.distanceMeasurement.labelsVisible = !context.distanceMeasurement.labelsVisible;
@@ -218,6 +251,14 @@
                     },
                     doAction: function (context) {
                         context.distanceMeasurementsPlugin.clear();
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    doAction: function () {
+                        distanceMeasurementsMouseControl.reset();
                     }
                 }
             ]
@@ -243,12 +284,31 @@
             [
                 {
                     getTitle: (context) => {
-                        return distanceMeasurements.control.active ? "Deactivate Control" : "Activate Control";
+                        return distanceMeasurementsMouseControl.active ? "Deactivate Control" : "Activate Control";
                     },
                     doAction: function (context) {
-                        distanceMeasurements.control.active
-                            ? distanceMeasurements.control.deactivate()
-                            : distanceMeasurements.control.activate();
+                        distanceMeasurementsMouseControl.active
+                            ? distanceMeasurementsMouseControl.deactivate()
+                            : distanceMeasurementsMouseControl.activate();
+                    }
+                },
+                {
+                    getTitle: (context) => {
+                        return distanceMeasurements.useRotationAdjustment ? "Disable Rotation Adjustment" : "Enable Rotation Adjustment";
+                    },
+                    doAction: function (context) {
+                        distanceMeasurements.useRotationAdjustment = !distanceMeasurements.useRotationAdjustment;
+                    }
+                },
+                {
+                    getTitle: () => {
+                        return "Cancel Measurement";
+                    },
+                    getEnabled: function () {
+                        return (!!distanceMeasurementsMouseControl.currentMeasurement);
+                    },
+                    doAction: function () {
+                        distanceMeasurementsMouseControl.reset();
                     }
                 }
             ]
@@ -259,6 +319,46 @@
     //     canvasContextMenu.show(e.pagePos[0], e.pagePos[1]);
     //     e.event.preventDefault();
     // });
+
+    viewer.scene.canvas.canvas.addEventListener('contextmenu', (event) => {
+        const canvasPos = getCanvasPosFromEvent(event);
+        //show the context menu if users clicks on empty screen
+        const hit = viewer.scene.pick({
+            canvasPos
+        });
+        if (!hit) {
+            canvasContextMenu.context = { // Must set context before showing menu
+                viewer
+            };
+            canvasContextMenu.show(event.pageX, event.pageY);
+        }
+        event.preventDefault();
+    });
+
+    const getCanvasPosFromEvent = function (event) {
+        const canvasPos = [];
+        if (!event) {
+            event = window.event;
+            canvasPos[0] = event.x;
+            canvasPos[1] = event.y;
+        } else {
+            let element = event.target;
+            let totalOffsetLeft = 0;
+            let totalOffsetTop = 0;
+            let totalScrollX = 0;
+            let totalScrollY = 0;
+            while (element.offsetParent) {
+                totalOffsetLeft += element.offsetLeft;
+                totalOffsetTop += element.offsetTop;
+                totalScrollX += element.scrollLeft;
+                totalScrollY += element.scrollTop;
+                element = element.offsetParent;
+            }
+            canvasPos[0] = event.pageX + totalScrollX - totalOffsetLeft;
+            canvasPos[1] = event.pageY + totalScrollY - totalOffsetTop;
+        }
+        return canvasPos;
+    };
 
     //------------------------------------------------------------------------------------------------------------------
     // Create an DistanceMeasurementsPlugin, activate its DistanceMeasuremntsControl
@@ -288,4 +388,5 @@
     window.viewer = viewer;
 
 </script>
+
 </html>
