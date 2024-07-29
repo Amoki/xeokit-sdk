@@ -2647,6 +2647,7 @@ export class SceneModel extends Component {
             id: textureSetId,
             model: this,
             colorTexture,
+            alphaCutoff: cfg.alphaCutoff,
             metallicRoughnessTexture,
             normalsTexture,
             emissiveTexture,
@@ -3083,6 +3084,14 @@ export class SceneModel extends Component {
             this._createMesh(cfg);
         }
 
+    }
+
+    _createDefaultIndices(numIndices) {
+        const indices = [];
+        for (let i = 0; i < numIndices; i++) {
+            indices.push(i);
+        }
+        return indices;
     }
 
     _createMesh(cfg) {
