@@ -1,4 +1,4 @@
-import { Entity, Plugin, Viewer } from "../../viewer";
+import { Entity, Plugin, SceneModel, Viewer } from "../../viewer";
 import { ModelStats } from "../index";
 
 export declare interface ILASDefaultDataSource {
@@ -32,6 +32,10 @@ export declare type LoadLASModel = {
   src?: string;
   /** The LAS file data, as an alternative to the ````src```` parameter. */
   las?: ArrayBuffer;
+  /** Create entity with this id */
+  entityId?: string;
+  /** Creates a MetaModel from json */
+  metaModelJSON?: any;
   /** Whether to load metadata for the LAS model. */
   loadMetadata?: boolean;
   /** The model's World-space double-precision 3D origin. Use this to position the model within xeokit's World coordinate system, using double-precision coordinates. */
@@ -142,5 +146,5 @@ export declare class LASLoaderPlugin extends Plugin {
    * @param {LoadLASModel} params Loading parameters.
    * @returns {SceneModel} SceneModel representing the model, which will have {@link Entity.isModel} set ````true```` and will be registered by {@link Entity.id} in {@link Scene.models}.
    */
-  load(params?: LoadLASModel): Entity;
+  load(params?: LoadLASModel): SceneModel;
 }

@@ -2508,7 +2508,21 @@ export class SceneModel extends Component {
         if (cfg.image) { // Ignore transcoder for Images
             const image = cfg.image;
             image.crossOrigin = "Anonymous";
-            texture.setImage(image, {minFilter, magFilter, wrapS, wrapT, wrapR, flipY: cfg.flipY, encoding});
+            if (image.compressed) {
+                // see `parsedImage` in @loaders.gl/gltf/src/lib/parsers/parse-gltf.ts
+                // NOTE: @loaders.gl in its current version discards potential mipmaps, leaving only a single one
+                const data = image.data;
+                texture.setCompressedData({
+                    mipmaps: data,
+                    props: {
+                        format: data[0].format,
+                        minFilter: minFilter,
+                        magFilter: magFilter
+                    }
+                });
+            } else {
+                texture.setImage(image, {minFilter, magFilter, wrapS, wrapT, wrapR, flipY: cfg.flipY, encoding});
+            }
         } else if (cfg.src) {
             const ext = cfg.src.split('.').pop();
             switch (ext) { // Don't transcode recognized image file types
@@ -3123,6 +3137,7 @@ export class SceneModel extends Component {
             cfg.meshMatrix = cfg.transform.worldMatrix;
         }
         mesh.portionId = mesh.layer.createPortion(mesh, cfg);
+        mesh.numPrimitives = cfg.numPrimitives;
         this._meshes[cfg.id] = mesh;
         this._unusedMeshes[cfg.id] = mesh;
         this._meshList.push(mesh);
@@ -3487,18 +3502,7 @@ export class SceneModel extends Component {
             flags = flags | ENTITY_FLAGS.SELECTED;
         }
         cfg.flags = flags;
-        if (this._vfcManager && !this._vfcManager.finalized) {
-            for (let i = 0, len = cfg.meshIds.length; i < len; i++) {
-                const meshId = cfg.meshIds[i];
-                if (this._scheduledMeshes[meshId]) {
-                    this.error(`[createEntity] Mesh not found: ${meshId}`);
-                    return;
-                }
-            }
-            this._vfcManager.addEntity(cfg);
-        } else {
-            this._createEntity(cfg);
-        }
+        return this._createEntity(cfg);
     }
 
     _createEntity(cfg) {
@@ -3529,6 +3533,7 @@ export class SceneModel extends Component {
         this._entities[cfg.id] = entity;
         this._entitiesToFinalize.push(entity);
         this.numEntities++;
+        return entity;
     }
 
     /**
