@@ -78,9 +78,7 @@ export class LODCullingManager {
         if (this.isCameraMoving && currentFPS < lodState.targetFps) {
             retVal = this._increaseLODLevelIndex();
         } else if (!this.isCameraMoving) {
-            while(this._decreaseLODLevelIndex() === true) {
-                retVal = true;
-            };
+            retVal = this.resetLodCulling();
         }
         return retVal;
     }
