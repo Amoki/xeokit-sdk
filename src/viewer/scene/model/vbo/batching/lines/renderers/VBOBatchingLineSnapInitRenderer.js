@@ -36,7 +36,7 @@ export class VBOBatchingLineSnapInitRenderer extends VBORenderer {
         const gl = scene.canvas.gl;
         const state = batchingLayer._state;
         const origin = batchingLayer._state.origin;
-        const {position, rotationMatrix, rotationMatrixConjugate} = model;
+        const {position, rotationMatrix} = model;
         const aabb = batchingLayer.aabb; // Per-layer AABB for best RTC accuracy
         const viewMatrix = frameCtx.pickViewMatrix || camera.viewMatrix;
 
@@ -101,7 +101,7 @@ export class VBOBatchingLineSnapInitRenderer extends VBORenderer {
         let offset = 0;
         const mat4Size = 4 * 4;
 
-        this._matricesUniformBlockBufferData.set(rotationMatrixConjugate, 0);
+        this._matricesUniformBlockBufferData.set(rotationMatrix, 0);
         this._matricesUniformBlockBufferData.set(rtcViewMatrix, offset += mat4Size);
         this._matricesUniformBlockBufferData.set(camera.projMatrix, offset += mat4Size);
         this._matricesUniformBlockBufferData.set(state.positionsDecodeMatrix, offset += mat4Size);
@@ -127,6 +127,8 @@ export class VBOBatchingLineSnapInitRenderer extends VBORenderer {
         state.indicesBuf.bind();
         gl.drawElements(gl.TRIANGLES, state.indicesBuf.numItems, state.indicesBuf.itemType, 0);
         state.indicesBuf.unbind();
+
+        gl.bindVertexArray(null);
     }
 
     _allocate() {

@@ -13,16 +13,21 @@ import { ModelStats } from "../index";
    * @param {Function} error Callback fired on error.
    */
   getIFC(src: string | number, ok: (buffer: ArrayBuffer)=> void, error: (e: Error)=> void): void;
+  
+  get cacheBuster(): boolean;
+
+  set cacheBuster(value: boolean);
 }
 
 export declare type WebIFCLoaderPluginConfiguration = {
   id?: string;
-  wasmPath: string;
   objectDefaults?: any;
   dataSource?: IWebIFCDefaultDataSource;
   includeTypes?: string[];
   excludeTypes?: string[];
   excludeUnclassifiedObjects?: boolean;
+  WebIFC: any;
+  IfcAPI: any;
 };
 
 export declare type LoadWebIFCModel = {

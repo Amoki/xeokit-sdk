@@ -313,6 +313,10 @@ export class SceneModelMesh {
         }
     }
 
+    isSolid() {
+        return this.layer.solid;
+    }
+
     /**
      * Returns the volume of this SceneModelMesh.
      * @returns {number}
@@ -376,6 +380,7 @@ export class SceneModelMesh {
     set aabb(aabb) { // Called by SceneModel
         this._aabbLocal = aabb;
         if (this.origin) {
+            this._aabbLocal = aabb.slice(0);
             const origin = this.origin;
             this._aabbLocal[0] += origin[0];
             this._aabbLocal[1] += origin[1];

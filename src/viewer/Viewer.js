@@ -4,6 +4,8 @@ import {CameraControl} from "./scene/CameraControl/CameraControl.js";
 import {MetaScene} from "./metadata/MetaScene.js";
 import {LocaleService} from "./localization/LocaleService.js";
 import html2canvas from 'html2canvas/dist/html2canvas.esm.js';
+import {math} from "./scene/math/math.js";
+import {transformToNode} from "../plugins/lib/ui/index.js";
 
 /**
  * The 3D Viewer at the heart of the xeokit SDK.
@@ -363,22 +365,6 @@ class Viewer {
             this.sendToPlugins("snapshotStarting"); // Tells plugins to hide things that shouldn't be in snapshot
         }
 
-        const captured = {};
-        for (let i = 0, len = this._plugins.length; i < len; i++) {
-            const plugin = this._plugins[i];
-            if (plugin.getContainerElement) {
-                const container = plugin.getContainerElement();
-                if (container !== document.body) {
-                    if (!captured[container.id]) {
-                        captured[container.id] = true;
-                        html2canvas(container).then(function (canvas) {
-                            document.body.appendChild(canvas);
-                        });
-                    }
-                }
-            }
-        }
-
         // firing "rendering" is necessary to trigger DTX{Lines,Triangles}Layer::_uploadDeferredFlags
         this.scene.fire("rendering", { }, true);
 
@@ -491,6 +477,12 @@ class Viewer {
             }
         }
 
+        // Added to fix label's text offset in an html2canvas capture (See XEOK-151)
+        // based on https://github.com/niklasvh/html2canvas/issues/2775#issuecomment-1316356991
+        const style = document.createElement('style');
+        document.head.appendChild(style);
+        style.sheet?.insertRule('body > div:last-child img { display: inline-block; }');
+
         for (let i = 0, len = pluginContainerElements.length; i < len; i++) {
             const containerElement = pluginContainerElements[i];
             await html2canvas(containerElement, {
@@ -498,7 +490,14 @@ class Viewer {
                 backgroundColor: null,
                 scale: snapshotCanvas.width / containerElement.clientWidth
             });
+            // Reverts translation and scaling applied to the snapshotCanvas's context
+            // by the html2canvas call (inside the ForeignObjectRenderer's constructor)
+            // (implemented to compensate XCD-153 issue)
+            snapshotCanvas.getContext("2d").resetTransform();
         }
+
+        style.remove();
+
         if (!params.includeGizmos) {
             this.sendToPlugins("snapshotFinished");
         }

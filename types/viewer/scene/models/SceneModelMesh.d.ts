@@ -65,4 +65,23 @@ export declare class SceneModelMesh {
      */
     entity: SceneModelEntity;
 
+    /**
+     * Tells whether this SceneModelMesh is a solid or not
+     * 
+     * @type {Boolean}
+     */
+    isSolid(): boolean;
+
+    /**
+     * Returns the volume of this SceneModelMesh.
+     * @returns {number}
+     */
+    get volume(): number;
+
+    /**
+     * Returns the surface area of this SceneModelMesh.
+     * @returns {number}
+     */
+    get surfaceArea(): number;
+
 }

@@ -1,7 +1,6 @@
 import {MetaModel} from "./MetaModel.js";
 import {MetaObject} from "./MetaObject.js";
 import {PropertySet} from "./PropertySet.js";
-import {math} from "../scene/math/math.js";
 
 /**
  * @desc Metadata corresponding to a {@link Scene}.
@@ -186,15 +185,15 @@ class MetaScene {
         // Remove MetaObjects
 
         if (metaModel.metaObjects) {
-            for (let i = 0, len = metaModel.metaObjects.length; i < len; i++) {
-                const metaObject = metaModel.metaObjects[i];
-                const type = metaObject.type;
-                const id = metaObject.id;
-                if (metaObject.metaModels.length === 1&& metaObject.metaModels[0].id === metaModelId) { // MetaObject owned only by this model, delete
-                    delete this.metaObjects[id];
+            for (let objectId in metaModel.metaObjects) {
+                const metaObject = metaModel.metaObjects[objectId];
+                if (metaObject.metaModels.length === 1 && metaObject.metaModels[0].id === metaModelId) { // MetaObject owned only by this model, delete
+                    delete this.metaObjects[objectId];
                     if (!metaObject.parent) {
-                        delete this.rootMetaObjects[id];
+                        delete this.rootMetaObjects[objectId];
                     }
+                } else {
+                    metaObject.metaModels = metaObject.metaModels.filter(metaModel => metaModel.id !== metaModelId);
                 }
             }
         }
@@ -254,8 +253,8 @@ class MetaScene {
 
         for (let modelId in this.metaModels) {
             const metaModel = this.metaModels[modelId];
-            for (let i = 0, len = metaModel.metaObjects.length; i < len; i++) {
-                const metaObject = metaModel.metaObjects[i];
+            for (let objectId in metaModel.metaObjects) {
+                const metaObject = metaModel.metaObjects[objectId];
                 metaObject.metaModels.push(metaModel);
             }
         }

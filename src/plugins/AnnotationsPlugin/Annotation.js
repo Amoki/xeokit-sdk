@@ -1,10 +1,13 @@
-import {math} from '../../viewer/scene/math/math.js';
-import {Marker} from "../../viewer/scene/marker/Marker.js";
-import {utils} from "../../viewer/scene/utils.js";
+import { Marker } from "../../viewer/scene/marker/Marker.js";
+import { math } from '../../viewer/scene/math/math.js';
+import { utils } from "../../viewer/scene/utils.js";
+import { addContextMenuListener } from '../lib/html/MenuEvent.js';
 
 const tempVec3a = math.vec3();
 const tempVec3b = math.vec3();
 const tempVec3c = math.vec3();
+
+const px = x => x + "px";
 
 /**
  * A {@link Marker} with an HTML label attached to it, managed by an {@link AnnotationsPlugin}.
@@ -39,15 +42,18 @@ class Annotation extends Marker {
         }
 
         this._htmlDirty = false;
+        this._curMarkerWidth = undefined;
+        this._curLabelWidth = 0;
 
         if (cfg.markerElement) {
             this._marker = cfg.markerElement;
             this._marker.addEventListener("click", this._onMouseClickedExternalMarker = () => {
                 this.plugin.fire("markerClicked", this);
             });
-            this._marker.addEventListener("contextmenu", this._onContextMenuExtenalMarker = () => {
+            this._onContextMenuExternalMarker = () => {
                 this.plugin.fire("contextmenu", this);
-            });
+            }
+            this._onContextMenuExternalMarkerRemover = addContextMenuListener(this._marker, this._onContextMenuExternalMarker);
             this._marker.addEventListener("mouseenter", this._onMouseEnterExternalMarker = () => {
                 this.plugin.fire("markerMouseEnter", this);
             });
@@ -168,10 +174,13 @@ class Annotation extends Marker {
             this._marker.addEventListener("click", () => {
                 this.plugin.fire("markerClicked", this);
             });
-            this._marker.addEventListener("contextmenu", e => {
+            addContextMenuListener(this._marker, e => {
                 e.preventDefault();
                 this.plugin.fire("contextmenu", this);
-            });
+            }, e => {
+                e.preventDefault();
+                this.plugin.fire("markerClicked", this);
+            })
             this._marker.addEventListener("mouseenter", () => {
                 this.plugin.fire("markerMouseEnter", this);
             });
@@ -205,25 +214,73 @@ class Annotation extends Marker {
     /**
      * @private
      */
-    _updatePosition() {
-        const px = x => x + "px";
+    _updateWithCurWidths() {
         const boundary = this.scene.canvas.boundary;
         const left = boundary[0] + this.canvasPos[0];
         const top  = boundary[1] + this.canvasPos[1];
-        const markerRect = this._marker.getBoundingClientRect();
-        const markerWidth = markerRect.width;
-        const markerDir = (this._markerAlign === "right") ? -1 : ((this._markerAlign === "center") ? 0 : 1);
-        const markerCenter = left + markerDir * (markerWidth / 2 - 12);
-        this._marker.style.left = px(markerCenter - markerWidth / 2);
-        this._marker.style.top  = px(top - 12);
-        this._marker.style["z-index"] = 90005 + Math.floor(this._viewPos[2]) + 1;
-
-        const labelRect = this._label.getBoundingClientRect();
-        const labelWidth = labelRect.width;
-        const labelDir = Math.sign(this._labelPosition);
-        this._label.style.left = px(markerCenter + labelDir * (markerWidth / 2 + Math.abs(this._labelPosition) + labelWidth / 2) - labelWidth / 2);
+        this._marker.style.top = px(top - 12);
         this._label.style.top  = px(top - 17);
-        this._label.style["z-index"] = 90005 + Math.floor(this._viewPos[2]) + 1;
+
+        if (this._markerAlign === "legacy") {
+            this._marker.style.left = px(left - 12);
+            this._label.style.left  = px(left + 40);
+        } else {
+            const markerWidth = this._curMarkerWidth;
+            const markerDir = (this._markerAlign === "right") ? -1 : ((this._markerAlign === "center") ? 0 : 1);
+            const markerCenter = left + markerDir * (markerWidth / 2 - 12);
+            this._marker.style.left = px(markerCenter - markerWidth / 2);
+
+            const labelWidth = this._curLabelWidth;
+            const labelDir = Math.sign(this._labelPosition);
+            this._label.style.left = px(markerCenter + labelDir * (markerWidth / 2 + Math.abs(this._labelPosition) + labelWidth / 2) - labelWidth / 2);
+        }
+
+        const zIndex = 90005 + Math.floor(this._viewPos[2]) + 1;
+        this._marker.style["z-index"] = zIndex;
+        this._label.style["z-index"]  = zIndex;
+    }
+
+    /**
+     * @private
+     */
+    _updateIfWidthsChanged() {
+        let needsUpdate = false;
+        const markerWidth = this._marker.getBoundingClientRect().width;
+        if (this._curMarkerWidth !== markerWidth) {
+            this._curMarkerWidth = markerWidth;
+            needsUpdate = true;
+        }
+        const labelDir = Math.sign(this._labelPosition);
+        // if (labelDir === 1) then don't perform relatively expensive label.getBoundingClientRect call
+        if (labelDir !== 1) {
+            const labelWidth = this._label.getBoundingClientRect().width;
+            if (this._curLabelWidth !== labelWidth) {
+                this._curLabelWidth = labelWidth;
+                needsUpdate = true;
+            }
+        }
+        if (needsUpdate) {
+            this._updateWithCurWidths();
+        }
+    }
+
+    /**
+     * @private
+     */
+    _updatePosition() {
+        const isLegacy = this._markerAlign === "legacy";
+        if ((! isLegacy) && (this._curMarkerWidth === undefined)) {
+            this._updateIfWidthsChanged();
+        } else {
+            // Update position with cached width values
+            // and postpone expensive Annotation's getBoundingClientRect calls
+            // so they don't interfere with e.g. interactive scene manipulation
+            this._updateWithCurWidths();
+            window.clearTimeout(this._widthTimeout);
+            if (! isLegacy) {
+                this._widthTimeout = window.setTimeout(() => this._updateIfWidthsChanged(), 500);
+            }
+        }
     }
 
     /**
@@ -260,10 +317,10 @@ class Annotation extends Marker {
     /**
      * Sets the horizontal alignment of the Annotation's marker HTML.
      *
-     * @param {String} align Either "left", "center", "right" (default "left")
+     * @param {String} align Either "left", "center", "right", "legacy" (default "left")
      */
     setMarkerAlign(align) {
-        const valid = [ "left", "center", "right" ];
+        const valid = [ "left", "center", "right", "legacy" ];
         if (! valid.includes(align)) {
             this.error("Param 'align' should be one of: " + JSON.stringify(valid));
         } else {
@@ -412,13 +469,14 @@ class Annotation extends Marker {
      * You can also call {@link AnnotationsPlugin#destroyAnnotation}.
      */
     destroy() {
+        window.clearTimeout(this._widthTimeout);
         if (this._marker) {
             if (!this._markerExternal) {
                 this._marker.parentNode.removeChild(this._marker);
                 this._marker = null;
             } else {
                 this._marker.removeEventListener("click", this._onMouseClickedExternalMarker);
-                this._marker.removeEventListener("contextmenu", this._onContextMenuExtenalMarker);
+                this._onContextMenuExternalMarkerRemover();
                 this._marker.removeEventListener("mouseenter", this._onMouseEnterExternalMarker);
                 this._marker.removeEventListener("mouseleave", this._onMouseLeaveExternalMarker);
                 this._marker = null;
@@ -435,4 +493,4 @@ class Annotation extends Marker {
     }
 }
 
-export {Annotation};
+export { Annotation };

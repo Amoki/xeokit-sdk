@@ -258,6 +258,8 @@ class StoreyViewsPlugin extends Plugin {
          */
         this.storeys = {};
 
+        this._storeysList = null;
+
         /**
          * A set of {@link Storey}s for each {@link MetaModel}.
          *
@@ -299,12 +301,50 @@ class StoreyViewsPlugin extends Plugin {
                     this.fire("storeys", this.storeys);
                 });
                 this.storeys[storeyId] = storey;
+                this._storeysList = null;
                 if (!this.modelStoreys[modelId]) {
                     this.modelStoreys[modelId] = {};
                 }
                 this.modelStoreys[modelId][storeyId] = storey;
             }
         }
+        this._clipBoundingBoxes();
+    }
+
+    _clipBoundingBoxes() {
+        const storeysList = this.storeysList;
+        const metaScene = this.viewer.metaScene;
+        const camera = this.viewer.camera;
+        const worldUp = camera.worldUp;
+        const xUp = worldUp[0] > worldUp[1] && worldUp[0] > worldUp[2];
+        const yUp = !xUp && worldUp[1] > worldUp[0] && worldUp[1] > worldUp[2];
+        const zUp = !xUp && !yUp && worldUp[2] > worldUp[0] && worldUp[2] > worldUp[1];
+
+        let bbIndex;
+
+        if(xUp) bbIndex = 0;
+        else if(yUp) bbIndex = 1;
+        else bbIndex = 2;
+        
+        for (let i = 0, len = storeysList.length; i < len; i++) {
+
+            const storeyMetaObjectCur = metaScene.metaObjects[storeysList[i].storeyId];
+            const elevationCur = storeyMetaObjectCur.attributes.elevation;
+
+            if(isNaN(elevationCur)) return;
+
+            const bb = storeysList[i].storeyAABB;
+            bb[bbIndex] = Math.max(bb[1], parseFloat(elevationCur));
+
+            if (i > 0) {
+                const storeyMetaObjectNext = metaScene.metaObjects[storeysList[i - 1].storeyId];
+                const elevationNext = storeyMetaObjectNext.attributes.elevation;
+                bb[4] = Math.min(bb[bbIndex + 3], parseFloat(elevationNext));
+            }
+
+            this.storeys[storeysList[i].storeyId].storeyAABB = bb;
+        }
+
     }
 
     _deregisterModelStoreys(modelId) {
@@ -319,6 +359,7 @@ class StoreyViewsPlugin extends Plugin {
                         model.off(storey._onModelDestroyed);
                     }
                     delete this.storeys[storyObjectId];
+                    this._storeysList = null;
                 }
             }
             delete this.modelStoreys[modelId];
@@ -423,7 +464,7 @@ class StoreyViewsPlugin extends Plugin {
      * @param {String} storeyId ID of the ````IfcBuildingStorey```` object.
      * @param {*} [options] Options for showing the Entitys within the storey.
      * @param {Boolean} [options.hideOthers=false] When ````true````, hide all other {@link Entity}s.
-    */
+     */
     showStoreyObjects(storeyId, options = {}) {
 
         const storey = this.storeys[storeyId];
@@ -448,7 +489,7 @@ class StoreyViewsPlugin extends Plugin {
 
         this.withStoreyObjects(storeyId, (entity, metaObject) => {
             if (entity) {
-                    entity.visible = true;
+                entity.visible = true;
             }
         });
     }
@@ -500,6 +541,7 @@ class StoreyViewsPlugin extends Plugin {
      * @param {Number} [options.width=300] Image width in pixels. Height will be automatically determined from this, if not given.
      * @param {Number} [options.height=300] Image height in pixels, as an alternative to width. Width will be automatically determined from this, if not given.
      * @param {String} [options.format="png"] Image format. Accepted values are "png" and "jpeg".
+     * @param {Boolean} [options.captureSectionPlanes=false] Whether the storey map is sliced or not.
      * @returns {StoreyMap} The StoreyMap.
      */
     createStoreyMap(storeyId, options = {}) {
@@ -516,6 +558,7 @@ class StoreyViewsPlugin extends Plugin {
         const aabb = (this._fitStoreyMaps) ? storey.storeyAABB : storey.modelAABB;
         const aspect = Math.abs((aabb[5] - aabb[2]) / (aabb[3] - aabb[0]));
         const padding = options.padding || 0;
+        const captureSectionPlanes = !!options.captureSectionPlanes;
 
         let width;
         let height;
@@ -537,12 +580,19 @@ class StoreyViewsPlugin extends Plugin {
             height = Math.round(width * aspect);
         }
 
-        this._objectsMemento.saveObjects(scene);
+        const mask = {
+            visible: true,
+        }
+
+        this._objectsMemento.saveObjects(scene, mask);
         this._cameraMemento.saveCamera(scene);
 
         this.showStoreyObjects(storeyId, utils.apply(options, {
             hideOthers: true
         }));
+        
+        if (captureSectionPlanes)
+            this._toggleSectionPlanes(false);
 
         this._arrangeStoreyMapCamera(storey);
 
@@ -552,10 +602,19 @@ class StoreyViewsPlugin extends Plugin {
             format: format,
         });
 
-        this._objectsMemento.restoreObjects(scene);
+        this._objectsMemento.restoreObjects(scene, mask);
         this._cameraMemento.restoreCamera(scene);
+        if (captureSectionPlanes)
+            this._toggleSectionPlanes(true);
 
         return new StoreyMap(storeyId, src, format, width, height, padding);
+    }
+
+    _toggleSectionPlanes(visible) {
+        const planes = this.viewer.scene.sectionPlanes;
+        for (const key in planes) {
+            planes[key].active = visible;
+        }
     }
 
     _arrangeStoreyMapCamera(storey) {
@@ -672,9 +731,10 @@ class StoreyViewsPlugin extends Plugin {
      * @param {Number[]} worldPos 3D World-space position.
      * @returns {String} ID of the storey containing the position, or null if the position falls outside all the storeys.
      */
-    getStoreyContainingWorldPos(worldPos) {
-        for (var storeyId in this.storeys) {
-            const storey = this.storeys[storeyId];
+    getStoreyContainingWorldPos(worldPos, modelId = null) {
+        const storeys = modelId ? this._filterStoreys(modelId) : this.storeys;
+        for (let storeyId in storeys) {
+            const storey = storeys[storeyId];
             if (math.point3AABB3AbsoluteIntersect(storey.storeyAABB, worldPos)) {
                 return storeyId;
             }
@@ -684,14 +744,15 @@ class StoreyViewsPlugin extends Plugin {
 
     /**
      * Gets the ID of the storey which's bounding box contains the y point of the world position
-     * 
+     *
      * @param {Number[]} worldPos 3D World-space position.
      * @returns {String} ID of the storey containing the position, or null if the position falls outside all the storeys.
      */
-    getStoreyInVerticalRange(worldPos) {
-        for(let storeyId in this.storeys) {
-            const storey = this.storeys[storeyId];
-            const aabb = [0,0,0,0,0,0], pos = [0,0,0];
+    getStoreyInVerticalRange(worldPos, modelId = null) {
+        const storeys = modelId ? this._filterStoreys(modelId) : this.storeys;
+        for (let storeyId in storeys) {
+            const storey = storeys[storeyId];
+            const aabb = [0, 0, 0, 0, 0, 0], pos = [0, 0, 0];
             aabb[1] = storey.storeyAABB[1];
             aabb[4] = storey.storeyAABB[4];
             pos[1] = worldPos[1];
@@ -704,16 +765,18 @@ class StoreyViewsPlugin extends Plugin {
 
     /**
      * Returns whether a position is above or below a building
-     * 
+     *
      * @param {Number[]} worldPos 3D World-space position.
      * @returns {String} ID of the lowest/highest story or null.
      */
-    isPositionAboveOrBelowBuilding(worldPos) {
-        const keys = Object.keys(this.storeys);
-        const ids = [keys[0], keys[keys.length-1]];
-        if(worldPos[1] < this.storeys[ids[0]].storeyAABB[1])
+    isPositionAboveOrBelowBuilding(worldPos, modelId = null) {
+        const storeys = modelId ? this._filterStoreys(modelId) : this.storeys;
+        const keys = Object.keys(storeys);
+        if(keys.length <= 0) return null;
+        const ids = [keys[0], keys[keys.length - 1]];
+        if (worldPos[1] < storeys[ids[0]].storeyAABB[1])
             return ids[0];
-        else if (worldPos[1] > this.storeys[ids[1]].storeyAABB[4])
+        else if (worldPos[1] > storeys[ids[1]].storeyAABB[4])
             return ids[1];
         return null;
     }
@@ -803,6 +866,65 @@ class StoreyViewsPlugin extends Plugin {
     destroy() {
         this.viewer.scene.off(this._onModelLoaded);
         super.destroy();
+    }
+
+    /**
+     * Gets Storeys in a list, spatially sorted on the vertical World axis, the lowest Storey first.
+     *
+     * @returns {null}
+     */
+    get storeysList() {
+        if (!this._storeysList) {
+            this._storeysList = Object.values(this.storeys);
+            this._storeysList.sort(this._getSpatialSortFunc());
+        }
+        return this._storeysList;
+    }
+
+    _getSpatialSortFunc() {
+        const viewer = this.viewer;
+        const scene = viewer.scene;
+        const camera = scene.camera;
+        return this._spatialSortFunc || (this._spatialSortFunc = (storey1, storey2) => {
+            let idx = 0;
+            if (camera.xUp) {
+                idx = 0;
+            } else if (camera.yUp) {
+                idx = 1;
+            } else {
+                idx = 2;
+            }
+            const metaScene = this.viewer.metaScene;
+            const storey1MetaObject = metaScene.metaObjects[storey1.storeyId];
+            const storey2MetaObject = metaScene.metaObjects[storey2.storeyId];
+
+            if (storey1MetaObject && (storey1MetaObject.attributes && storey1MetaObject.attributes.elevation !== undefined) &&
+                storey2MetaObject && (storey2MetaObject.attributes && storey2MetaObject.attributes.elevation !== undefined)) {
+                const elevation1 = Number.parseFloat(storey1MetaObject.attributes.elevation);
+                const elevation2 = Number.parseFloat(storey2MetaObject.attributes.elevation);
+                if (elevation1 > elevation2) {
+                    return -1;
+                }
+                if (elevation1 < elevation2) {
+                    return 1;
+                }
+                return 0;
+            } else {
+                if (storey1.aabb[idx] > storey2.aabb[idx]) {
+                    return -1;
+                }
+                if (storey1.aabb[idx] < storey2.aabb[idx]) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+    }
+
+    _filterStoreys(modelId) {
+        return Object.fromEntries(
+            Object.entries(this.storeys).filter(([_, value]) => value.modelId === modelId)
+        );
     }
 }
 

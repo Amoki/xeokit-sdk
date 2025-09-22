@@ -2,9 +2,10 @@
 
 [![npm version](https://badge.fury.io/js/%40xeokit%2Fxeokit-sdk.svg)](https://badge.fury.io/js/%40xeokit%2Fxeokit-sdk)
 [![](https://data.jsdelivr.com/v1/package/npm/@xeokit/xeokit-sdk/badge)](https://www.jsdelivr.com/package/npm/@xeokit/xeokit-sdk)
+[![@xeokit/xeokit-sdk](https://snyk.io/advisor/npm-package/@xeokit/xeokit-sdk/badge.svg)](/advisor/npm-package/@xeokit/xeokit-sdk)
 [![CodeSee](https://github.com/xeokit/xeokit-sdk/actions/workflows/codesee-arch-diagram.yml/badge.svg)](https://github.com/xeokit/xeokit-sdk/actions/workflows/codesee-arch-diagram.yml)
 
-[xeokit](http://xeokit.io) is a JavaScript software development kit created by [xeolabs](http://xeolabs.com) for viewing
+[xeokit](http://xeokit.io) is a JavaScript software development kit created by [xeolabs](http://xeolabs.com) and supported by [Creoox AG](https://creoox.com) for viewing
 high-detail, full-precision 3D engineering and BIM models in the browser.
 
 ## Resources
@@ -15,8 +16,14 @@ high-detail, full-precision 3D engineering and BIM models in the browser.
 * [API Docs](https://xeokit.github.io/xeokit-sdk/docs/)
 * [Features](https://xeokit.io/index.html?foo=1#features)
 * [Changelog](https://github.com/xeokit/xeokit-sdk/blob/master/CHANGELOG.md)
-* [FAQ](https://xeokit.io/index.html?foo=1#faq)
-* [License](https://xeokit.io/index.html#pricing)
+* [FAQ](https://xeokit.io/#faq)
+* [License](https://xeokit.io/#pricing)
+
+---
+If you are interested in a **ready-to-use 3D/BIM Viewing Ecosystem for Your Own Solution**, be sure to also check out:
+* [xeoVision - view your models now!](https://xeo.vision/)
+* [xeoServices](https://docs.xeo.vision/)
+---
 
 ## Installing
 
@@ -100,11 +107,11 @@ and [OBJ](https://xeokit.github.io/xeokit-sdk/docs/class/src/plugins/OBJLoaderPl
 </script>
 </html>
 ````
+---
+## 📜 Licensing & Commercial Use
 
+xeokit SDK is licensed under **AGPLv3**, which requires that any modifications or integrations of xeokit SDK into a project must also be open-sourced under AGPLv3.
 
+🪧 **Need a commercial license?** If your company requires xeokit SDK under a different licensing model for **proprietary or closed-source** applications, we offer **flexible commercial licensing options**.
 
-
-
-
-
-
+📩 **Contact us** at [contact@creoox.com](mailto:contact@creoox.com) or visit [xeokit.io](https://xeokit.io/#pricing) for more information.

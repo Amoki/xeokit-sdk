@@ -41,7 +41,7 @@ export class DTXTrianglesColorRenderer {
         const state = dataTextureLayer._state;
         const textureState = state.textureState;
         const origin = dataTextureLayer._state.origin;
-        const {position, rotationMatrix, rotationMatrixConjugate} = model;
+        const {position, rotationMatrix} = model;
 
         if (!this._program) {
             this._allocate();
@@ -93,7 +93,7 @@ export class DTXTrianglesColorRenderer {
             rtcCameraEye = camera.eye;
         }
 
-        gl.uniformMatrix4fv(this._uSceneModelMatrix, false, rotationMatrixConjugate);
+        gl.uniformMatrix4fv(this._uSceneModelMatrix, false, rotationMatrix);
         gl.uniformMatrix4fv(this._uViewMatrix, false, rtcViewMatrix);
         gl.uniformMatrix4fv(this._uProjMatrix, false, camera.projMatrix);
         gl.uniform3fv(this._uCameraEyeRtc, rtcCameraEye);
@@ -110,6 +110,10 @@ export class DTXTrianglesColorRenderer {
             const sectionPlanes = scene._sectionPlanesState.sectionPlanes;
             const baseIndex = dataTextureLayer.layerIndex * numSectionPlanes;
             const renderFlags = model.renderFlags;
+            if (scene.crossSections) {
+                gl.uniform4fv(this._uSliceColor, scene.crossSections.sliceColor);
+                gl.uniform1f(this._uSliceThickness, scene.crossSections.sliceThickness);
+            }
             for (let sectionPlaneIndex = 0; sectionPlaneIndex < numAllocatedSectionPlanes; sectionPlaneIndex++) {
                 const sectionPlaneUniforms = this._uSectionPlanes[sectionPlaneIndex];
                 if (sectionPlaneUniforms) {
@@ -119,7 +123,7 @@ export class DTXTrianglesColorRenderer {
                         if (active) {
                             const sectionPlane = sectionPlanes[sectionPlaneIndex];
                             if (origin) {
-                                const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a);
+                                const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a, model.matrix);
                                 gl.uniform3fv(sectionPlaneUniforms.pos, rtcSectionPlanePos);
                             } else {
                                 gl.uniform3fv(sectionPlaneUniforms.pos, sectionPlane.pos);
@@ -247,6 +251,11 @@ export class DTXTrianglesColorRenderer {
         this._uTexturePerPolygonIdPortionIds = "uTexturePerPolygonIdPortionIds";
         this._uTexturePerObjectMatrix= "uTexturePerObjectMatrix";
         this._uCameraEyeRtc = program.getLocation("uCameraEyeRtc");
+
+        if (scene.crossSections) {
+            this._uSliceColor = program.getLocation("sliceColor");
+            this._uSliceThickness = program.getLocation("sliceThickness");
+        }
     }
 
     _bindProgram(frameCtx) {
@@ -563,11 +572,14 @@ export class DTXTrianglesColorRenderer {
                 src.push("uniform vec3 sectionPlanePos" + i + ";");
                 src.push("uniform vec3 sectionPlaneDir" + i + ";");
             }
+            src.push("uniform float sliceThickness;");
+            src.push("uniform vec4 sliceColor;");
         }
         src.push("in vec4 vColor;");
         src.push("out vec4 outColor;");
         src.push("void main(void) {");
-
+        src.push("  vec4 newColor;");
+        src.push("  newColor = vColor;");
         if (clipping) {
             src.push("  bool clippable = vFlags2 > 0u;");
             src.push("  if (clippable) {");
@@ -577,8 +589,11 @@ export class DTXTrianglesColorRenderer {
                 src.push("   dist += clamp(dot(-sectionPlaneDir" + i + ".xyz, vWorldPosition.xyz - sectionPlanePos" + i + ".xyz), 0.0, 1000.0);");
                 src.push("}");
             }
-            src.push("  if (dist > 0.0) { ");
+            src.push("  if (dist > sliceThickness) { ");
             src.push("      discard;")
+            src.push("  }");
+            src.push("  if (dist > 0.0) { ");
+            src.push("      newColor = sliceColor;");
             src.push("  }");
             src.push("}");
         }
@@ -586,6 +601,11 @@ export class DTXTrianglesColorRenderer {
         if (scene.logarithmicDepthBufferEnabled) {
              src.push("    gl_FragDepth = isPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;");
             //src.push("    gl_FragDepth = log2( vFragDepth ) * logDepthBufFC * 0.5;");
+        } else {
+            src.push("    float dx = dFdx(gl_FragCoord.z);")
+            src.push("    float dy = dFdy(gl_FragCoord.z);")
+            src.push("    float diff = sqrt(dx*dx+dy*dy);");
+            src.push("    gl_FragDepth = gl_FragCoord.z + diff;");
         }
 
         if (this._withSAO) {
@@ -597,9 +617,9 @@ export class DTXTrianglesColorRenderer {
             src.push("   float blendFactor       = uSAOParams[3];");
             src.push("   vec2 uv                 = vec2(gl_FragCoord.x / viewportWidth, gl_FragCoord.y / viewportHeight);");
             src.push("   float ambient           = smoothstep(blendCutoff, 1.0, unpackRGBToFloat(texture(uOcclusionTexture, uv))) * blendFactor;");
-            src.push("   outColor            = vec4(vColor.rgb * ambient, 1.0);");
+            src.push("   outColor            = vec4(newColor.rgb * ambient, 1.0);");
         } else {
-            src.push("   outColor            = vColor;");
+            src.push("   outColor            = newColor;");
         }
 
         src.push("}");

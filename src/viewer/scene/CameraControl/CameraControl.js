@@ -459,6 +459,12 @@ const DEFAULT_SNAP_EDGE = true;
  * keyMap[cameraControl.AXIS_VIEW_FRONT] = [input.KEY_NUM_4];
  * keyMap[cameraControl.AXIS_VIEW_TOP] = [input.KEY_NUM_5];
  * keyMap[cameraControl.AXIS_VIEW_BOTTOM] = [input.KEY_NUM_6];
+ * keyMap[cameraControl.MOUSE_PAN] = [[input.KEY_SHIFT, input.MOUSE_LEFT_BUTTON]];
+ * keyMap[cameraControl.MOUSE_ROTATE] = [
+ *     [input.KEY_SHIFT, input.MOUSE_MIDDLE_BUTTON],
+ *     [input.KEY_SHIFT, input.MOUSE_RIGHT_BUTTON]
+ * ]
+ * keyMap[cameraControl.MOUSE_DOLLY] = [[input.KEY_CTRL, input.MOUSE_RIGHT_BUTTON]];
  *
  * cameraControl.keyMap = keyMap;
  * ````
@@ -477,6 +483,70 @@ const DEFAULT_SNAP_EDGE = true;
  *
  * * ````"qwerty"````
  * * ````"azerty"````
+ * 
+ * ## Basic Keyboard Mapping
+ * * ````"OR" Relation````
+ * Set multiple keys to trigger an action if any one is pressed:
+ * 
+ * ````javascript
+ * keyMap[cameraControl.DOLLY_BACKWARDS] = [input.KEY_S, input.KEY_SUBTRACT];
+ * ````
+ * 
+ * If either ````KEY_S```` or ````KEY_SUBTRACT```` is pressed, the camera will dolly backward.
+ * 
+ * * ````"AND" Relation````
+ * To require all keys in a combination to be pressed:
+ * 
+ * ````javascript
+ * keyMap[cameraControl.DOLLY_BACKWARDS] = [[input.KEY_S, input.KEY_SUBTRACT]];
+ * ````
+ * 
+ * The camera will dolly backward if ````both KEY_S```` and ````KEY_SUBTRACT```` are pressed.
+ * 
+ * * ````Mix "AND" and "OR" Relation````
+ * Use a combination of keys and groups for flexibility:
+ * 
+ * ````javascript
+ * keyMap[cameraControl.DOLLY_BACKWARDS] = [
+ *     [input.KEY_S, input.KEY_SUBTRACT],  // 'And' group
+ *     input.KEY_SHIFT                      // 'Or' with previous
+ * ];
+ * ````
+ * 
+ * The camera will dolly backward if ````KEY_S```` + ````KEY_SUBTRACT```` are pressed together, or if ````KEY_SHIFT```` is pressed.
+ * 
+ * ## Special Mouse Actions
+ * Certain actions support combinations with specific mouse buttons or events:
+ * 
+ * * ````MOUSE_PAN````
+ * For panning with a key and mouse movement:
+ * 
+ * ````javascript
+ * keyMap[cameraControl.MOUSE_PAN] = [[input.KEY_SHIFT, input.MOUSE_LEFT_BUTTON]];
+ * ````
+ * 
+ * Panning is triggered by pressing ````KEY_SHIFT```` + ````MOUSE_LEFT_BUTTON```` while moving the mouse.
+ * 
+ * * ````MOUSE_ROTATE````
+ * Similar to panning, rotation can be configured with key and mouse button combinations:
+ * 
+ * ````javascript
+ * keyMap[cameraControl.MOUSE_ROTATE] = [[input.KEY_CTRL, input.MOUSE_LEFT_BUTTON]];
+ * ````
+ * 
+ * Rotation is triggered by pressing ````KEY_CTRL```` + ````MOUSE_LEFT_BUTTON```` during mouse movement.
+ * 
+ * * ````MOUSE_DOLLY````
+ * Dolly with mouse wheel scrolling and optional key combinations:
+ * 
+ * ````javascript
+ * keyMap[cameraControl.MOUSE_DOLLY] = [[input.KEY_ALT]];
+ * ````
+ * 
+ * Dolly action occurs when scrolling the mouse wheel with ````KEY_ALT```` held (no need to specify MOUSE_WHEEL).
+ * 
+ * ## Special Mouse Actions
+ * Use ````input.MOUSE_LEFT_BUTTON````, ````input.MOUSE_MIDDLE_BUTTON````, and ````input.MOUSE_RIGHT_BUTTON```` in combinations only for camera movements involving the mouse.
  */
 class CameraControl extends Component {
 
@@ -614,6 +684,27 @@ class CameraControl extends Component {
          */
         this.AXIS_VIEW_BOTTOM = 17;
 
+        /**
+         * Identifies the XX action.
+         * @final
+         * @type {Number}
+         */
+        this.MOUSE_PAN = 18;
+
+        /**
+         * Identifies the XX action.
+         * @final
+         * @type {Number}
+         */
+        this.MOUSE_ROTATE = 19;
+
+        /**
+         * Identifies the XX action.
+         * @final
+         * @type {Number}
+         */
+        this.MOUSE_DOLLY = 20;
+
         this._keyMap = {}; // Maps key codes to the above actions
 
         this.scene.canvas.canvas.oncontextmenu = (e) => {
@@ -729,6 +820,13 @@ class CameraControl extends Component {
             new KeyboardPanRotateDollyHandler(this.scene, this._controllers, this._configs, this._states, this._updates)
         ];
 
+        this._cursors = {
+            dollyForward: "zoom-in",
+            dollyBackward: "zoom-out",
+            rotate: 'grabbing',
+            pan: 'move',
+        }
+
         // Applies scheduled updates to the Camera on each Scene "tick" event
 
         this._cameraUpdater = new CameraUpdater(this.scene, this._controllers, this._configs, this._states, this._updates);
@@ -802,6 +900,12 @@ class CameraControl extends Component {
                     keyMap[this.AXIS_VIEW_FRONT] = [input.KEY_NUM_4];
                     keyMap[this.AXIS_VIEW_TOP] = [input.KEY_NUM_5];
                     keyMap[this.AXIS_VIEW_BOTTOM] = [input.KEY_NUM_6];
+                    keyMap[this.MOUSE_PAN] = [
+                        [input.MOUSE_LEFT_BUTTON, input.KEY_SHIFT],
+                        this._configs.panRightClick ? input.MOUSE_RIGHT_BUTTON : input.MOUSE_MIDDLE_BUTTON
+                    ]
+                    keyMap[this.MOUSE_ROTATE] = [input.MOUSE_LEFT_BUTTON];
+                    keyMap[this.MOUSE_DOLLY] = [];
                     break;
 
                 case "azerty":
@@ -823,6 +927,12 @@ class CameraControl extends Component {
                     keyMap[this.AXIS_VIEW_FRONT] = [input.KEY_NUM_4];
                     keyMap[this.AXIS_VIEW_TOP] = [input.KEY_NUM_5];
                     keyMap[this.AXIS_VIEW_BOTTOM] = [input.KEY_NUM_6];
+                    keyMap[this.MOUSE_PAN] = [
+                        [input.MOUSE_LEFT_BUTTON, input.KEY_SHIFT],
+                        this._configs.panRightClick ? input.MOUSE_RIGHT_BUTTON : input.MOUSE_MIDDLE_BUTTON
+                    ]
+                    keyMap[this.MOUSE_ROTATE] = [input.MOUSE_LEFT_BUTTON];
+                    keyMap[this.MOUSE_DOLLY] = [];
                     break;
             }
 
@@ -842,6 +952,44 @@ class CameraControl extends Component {
         return this._keyMap;
     }
 
+    _areAllKeysDown(keyDownMap, keys) {
+        if (!keys || keys.length <= 0) {
+            return true;
+        }
+        if (!keyDownMap) {
+            return false;
+        }
+        for (let i = 0, len = keys.length; i < len; i++) {
+            const key = keys[i];
+            if (!keyDownMap[key])
+                return false;
+        }
+        return true;
+    }
+
+    _isAnyOtherKeyDown(keyDownMap, keyMap) {
+        for (let i = 0, len = keyDownMap.length; i < len; i++) {
+            if (keyDownMap[i]) {
+                if (Array.isArray(keyMap)) {
+                    if (keyMap.indexOf(i) < 0) return true;
+                }
+                else if (i !== keyMap) return true;
+            }
+        }
+        return false;
+    }
+
+    _isMouseAction(action) {
+        switch (action) {
+            case this.MOUSE_ROTATE:
+            case this.MOUSE_DOLLY:
+            case this.MOUSE_PAN:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     /**
      * Returns true if any keys configured for the given action are down.
      * @param action
@@ -853,14 +1001,21 @@ class CameraControl extends Component {
         if (!keys) {
             return false;
         }
+        if (keys.length === 0 && this._isMouseAction(action)) return true;
         if (!keyDownMap) {
             keyDownMap = this.scene.input.keyDown;
         }
         for (let i = 0, len = keys.length; i < len; i++) {
             const key = keys[i];
-            if (keyDownMap[key]) {
-                return true;
+            if (!Array.isArray(key)) {
+                if (keyDownMap[key] && !this._isAnyOtherKeyDown(keyDownMap, key))
+                    return true;
             }
+            else {
+                if (this._areAllKeysDown(keyDownMap, key) && !this._isAnyOtherKeyDown(keyDownMap, key))
+                    return true;
+            }
+
         }
         return false;
     }
@@ -1031,6 +1186,37 @@ class CameraControl extends Component {
     set pointerEnabled(value) {
         this._reset();
         this._configs.pointerEnabled = !!value;
+    }
+
+    /**
+     * Sets the cursor to be used when a particular action is being performed.
+     *
+     * Accepted actions are:
+     * 
+     * * "dollyForward" - when the camera is dollying in the forward direction
+     * * "dollyBackward" - when the camera is dollying in the backward direction
+     * * "pan" - when the camera is being panned
+     * * "rotate" - when the camera is being rotated
+     *
+     * @param {String} action
+     * @param {String} style
+     */
+    setCursorStyle(action, style) {
+        if (Object.prototype.hasOwnProperty.call(this._cursors, action)) {
+            this._cursors = { ...this._cursors, [action]: style };
+        }
+        else
+            console.warn(`Action '${action}' is not valid for cursor styles.`);
+    }
+
+    /**
+     * Gets the current style for a particular action.
+     *
+     * @param {String} action To get the style for
+     * @returns {String} style set on the cursor for action
+     */
+    getCursorStyle(action) {
+        return this._cursors[action] || null;
     }
 
     _reset() {
@@ -1296,6 +1482,16 @@ class CameraControl extends Component {
      */
     set panRightClick(value) {
         this._configs.panRightClick = value !== false;
+        const panKeyMap = this._keyMap[this.MOUSE_PAN];
+        if (panKeyMap && panKeyMap.length > 0) {
+            const input = this.scene.input;
+            for (let i = 0, len = panKeyMap.length; i < len; i++) {
+                if (this._configs.panRightClick && panKeyMap[i] === input.MOUSE_MIDDLE_BUTTON) 
+                    this._keyMap[this.MOUSE_PAN][i] = input.MOUSE_RIGHT_BUTTON;
+                else if (!this._configs.panRightClick && panKeyMap[i] === input.MOUSE_RIGHT_BUTTON)
+                    this._keyMap[this.MOUSE_PAN][i] = input.MOUSE_MIDDLE_BUTTON;
+            }
+        }
     }
 
     /**

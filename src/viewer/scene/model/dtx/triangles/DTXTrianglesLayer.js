@@ -1122,8 +1122,7 @@ export class DTXTrianglesLayer {
                 worldPos[2] = positions[i + 2];
                 worldPos[3] = 1.0;
                 math.decompressPosition(worldPos, positionsDecodeMatrix);
-                math.transformPoint4(this.model.worldMatrix, worldPos);
-                math.transformPoint4(this.model.worldMatrix, worldPos);
+                math.mulMat4v4(this.model.worldMatrix, worldPos, worldPos);
                 worldPos[0] += offsetX;
                 worldPos[1] += offsetY;
                 worldPos[2] += offsetZ;
@@ -1171,7 +1170,7 @@ export class DTXTrianglesLayer {
     }
 
     _updateBackfaceCull(renderFlags, frameCtx) {
-        const backfaces = this.model.backfaces || renderFlags.sectioned;
+        const backfaces = true; // See XCD-230
         if (frameCtx.backfaces !== backfaces) {
             const gl = frameCtx.gl;
             if (backfaces) {

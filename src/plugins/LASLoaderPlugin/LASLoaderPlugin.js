@@ -4,7 +4,7 @@ import {Plugin} from "../../viewer/Plugin.js";
 import {LASDefaultDataSource} from "./LASDefaultDataSource.js";
 import {math} from "../../viewer/index.js";
 import {parse} from '@loaders.gl/core';
-import {LASLoader} from '@loaders.gl/las/dist/esm/las-loader.js';
+import {LASLoader} from '@loaders.gl/las';
 import {loadLASHeader} from "./loadLASHeader";
 
 const MAX_VERTICES = 500000; // TODO: Rough estimate
@@ -212,6 +212,10 @@ class LASLoaderPlugin extends Plugin {
      * @param {Number} [cfg.skip=1] Configures LASLoaderPlugin to load every **n** points.
      * @param {Number} [cfg.fp64=false] Configures if LASLoaderPlugin assumes that LAS positions are stored in 64-bit floats instead of 32-bit.
      * @param {Number} [cfg.colorDepth=8] Configures whether LASLoaderPlugin assumes that LAS colors are encoded using 8 or 16 bits. Accepted values are 8, 16 an "auto".
+     * @param {Boolean} [cfg.center=false] Whether to center the LAS points.  Applied before "rotateX", "rotate" and "transform".
+     * @param {Boolean} [cfg.rotateX=false] Whether to rotate the LAS point positions 90 degrees. Applied after "center".
+     * @param {Number[]} [cfg.rotate=[0,0,0]] Rotations to immediately apply to the LAS points, given as Euler angles in degrees, for each of the X, Y and Z axis. Rotation is applied after "center" and "rotateX".
+     * @param {Number[]} [cfg.transform] 4x4 transform matrix to immediately apply to the LAS points. This is applied after "center", "rotateX" and "rotate". Typically used instead of "rotateX" and "rotate".
      */
     constructor(viewer, cfg = {}) {
 
@@ -221,6 +225,10 @@ class LASLoaderPlugin extends Plugin {
         this.skip = cfg.skip;
         this.fp64 = cfg.fp64;
         this.colorDepth = cfg.colorDepth;
+        this.center = cfg.center;
+        this.rotate = cfg.rotate;
+        this.rotateX = cfg.rotateX;
+        this.transform = cfg.transform;
     }
 
     /**
@@ -316,12 +324,114 @@ class LASLoaderPlugin extends Plugin {
     }
 
     /**
+     * Gets if LASLoaderPlugin immediately centers LAS positions.
+     *
+     * If this is ````true```` then centering is the first thing that happens to LAS positions as they are loaded.
+     *
+     * Default value is ````false````.
+     *
+     * @returns {Boolean} True if LASLoaderPlugin immediately centers LAS positions.
+     */
+    get center() {
+        return this._center;
+    }
+
+    /**
+     * Configures if LASLoaderPlugin immediately centers LAS positions.
+     *
+     * If this is ````true```` then centering is the first thing that happens to LAS positions as they are loaded.
+     *
+     * Default value is ````false````.
+     *
+     * @param {Boolean} value True if LASLoaderPlugin immediately centers LAS positions.
+     */
+    set center(value) {
+        this._center = !!value;
+    }
+
+    /**
+     * Gets the current transformation to apply to LAS positions as they are loaded.
+     *
+     * If this is ````true````, then LAS positions will be transformed after they are centered and rotated.
+     *
+     * Default value is null.
+     *
+     * @returns {Number[]|null} A 16-element array containing a 4x4 transformation matrix.
+     */
+    get transform() {
+        return this._transform;
+    }
+
+    /**
+     * Sets the current transformation to apply to LAS positions as they are loaded.
+     *
+     * If this is ````true````, then LAS positions will be transformed after they are centered and rotated.
+     *
+     * Default value is null.
+     *
+     * @param {Number[]|null} transform A 16-element array containing a 4x4 transformation matrix.
+     */
+    set transform(transform) {
+        this._transform = transform;
+    }
+
+    /**
+     * Gets the current rotations to apply to LAS positions as they are loaded.
+     *
+     * Rotations are an array of three Euler angles in degrees, for each of the X, Y and Z axis, applied in that order.
+     *
+     * Default value is null.
+     *
+     * @returns {Number[]|null} If defined, an array of three Euler angles in degrees, for each of the X, Y and Z axis. Null if undefined.
+     */
+    get rotate() {
+        return this._rotate;
+    }
+
+    /**
+     * Sets the current rotations to apply to LAS positions as they are loaded.
+     *
+     * Rotations are an array of three Euler angles in degrees, for each of the X, Y and Z axis, applied in that order.
+     *
+     * Default value is null.
+     *
+     * @param {Number[]|null} rotate Array of three Euler angles in degrees, for each of the X, Y and Z axis.
+     */
+    set rotate(rotate) {
+        this._rotate = rotate;
+    }
+
+    /**
+     * Gets if LAS positions are rotated 90 degrees about X as they are loaded.
+     *
+     * Default value is ````false````.
+     *
+     * @returns {*}
+     */
+    get rotateX() {
+        return this._rotateX;
+    }
+
+    /**
+     * Sets if LAS positions are rotated 90 degrees about X as they are loaded.
+     *
+     * Default value is ````false````.
+     *
+     * @param rotateX
+     */
+    set rotateX(rotateX) {
+        this._rotateX = rotateX;
+    }
+
+    /**
      * Loads an ````LAS```` model into this LASLoaderPlugin's {@link Viewer}.
      *
      * @param {*} params Loading parameters.
      * @param {String} [params.id] ID to assign to the root {@link Entity#id}, unique among all components in the Viewer's {@link Scene}, generated automatically by default.
      * @param {String} [params.src] Path to a LAS file, as an alternative to the ````las```` parameter.
      * @param {ArrayBuffer} [params.las] The LAS file data, as an alternative to the ````src```` parameter.
+     *  @param {String} [params.manifestSrc] Path or URL to a JSON manifest file that provides paths to ````.laz```` || ````.las```` files to load as parts of the model. Use this option to load models that have been split into
+     * @param {Object} [params.manifest] A JSON manifest object (as an alternative to a path or URL) that provides paths to ````.laz```` || ````.las```` files to load as parts of the model. Use this option to load models that have been split into
      * @param {Boolean} [params.loadMetadata=true] Whether to load metadata for the LAS model.
      * @param {Number[]} [params.origin=[0,0,0]] The model's World-space double-precision 3D origin. Use this to position the model within xeokit's World coordinate system, using double-precision coordinates.
      * @param {Number[]} [params.position=[0,0,0]] The model single-precision 3D position, relative to the ````origin```` parameter.
@@ -343,7 +453,7 @@ class LASLoaderPlugin extends Plugin {
             isModel: true
         }));
 
-        if (!params.src && !params.las) {
+        if (!params.src && !params.las && !params.manifest && !params.manifestSrc) {
             this.error("load() param expected: src or las");
             return sceneModel; // Return new empty model
         }
@@ -356,18 +466,77 @@ class LASLoaderPlugin extends Plugin {
             }
         };
 
+        const spinner = this.viewer.scene.canvas.spinner;
+        const done = () => {
+            sceneModel.scene.once("tick", () => {
+                if (sceneModel.destroyed) {
+                    return;
+                }
+                sceneModel.scene.fire("modelLoaded", sceneModel.id); // FIXME: Assumes listeners know order of these two events
+                sceneModel.fire("loaded", true, false); // Don't forget the event, for late subscribers
+            });
+            spinner.processes--;
+        }
+        const error = (errMsg) => {
+            spinner.processes--;
+            this.error(errMsg);
+            sceneModel.fire("error", errMsg);
+        }
+
         if (params.src) {
             this._loadModel(params.src, params, options, sceneModel);
-        } else {
-            const spinner = this.viewer.scene.canvas.spinner;
+        } else if(params.las) {
             spinner.processes++;
-            this._parseModel(params.las, params, options, sceneModel).then(() => {
-                spinner.processes--;
-            }, (errMsg) => {
-                spinner.processes--;
-                this.error(errMsg);
-                sceneModel.fire("error", errMsg);
-            });
+            this._parseModel(params.las, params, options, sceneModel).then(done, error);
+        } else if (params.manifest || params.manifestSrc) {
+            const baseDir = params.manifestSrc ? getBaseDirectory(params.manifestSrc) : "";
+            const loadAllFiles = (lasFiles) => { 
+                let i = 0;
+                const modelsLoaded = new Array(lasFiles.length);
+                const loadNext = () => {
+                    if (sceneModel.destroyed) {
+                        done();
+                    } else if (i >= lasFiles.length) {
+                        return
+                    } else {
+                        modelsLoaded[i] = false;
+                        this._dataSource.getLAS(`${baseDir}${lasFiles[i]}`, (arrayBuffer) => {
+                            const modelParams = utils.apply(params, {isManifest: true, index: i});
+                            this._parseModel(arrayBuffer, modelParams, options, sceneModel).then(() => {
+                                modelsLoaded[modelParams.index] = true;
+                                let allLoaded = true;
+                                modelsLoaded.forEach((loaded) => {
+                                    if(!loaded) allLoaded = false;
+                                })
+                                if(allLoaded) done();
+                            });
+                            i++;
+                            this.scheduleTask(loadNext, 200);
+                        }, error);
+                    }
+                }
+                loadNext();
+            };
+            const loadManifestData = (manifestData) => {
+                if(sceneModel.destroyed) return;
+                const files = manifestData.lasFiles || manifestData.lazFiles;
+                if(!files || files.length <= 0) {
+                    this.error(`load(): Failed to load model manifest - manifest not valid`);
+                    return;
+                }
+                loadAllFiles(files);
+            }
+            if(params.manifestSrc) {
+                this._dataSource.getManifest(params.manifestSrc, (manifestData) => {
+                    loadManifestData(manifestData);
+                }, (errMsg) => {
+                    this.error(errMsg);
+                    sceneModel.fire("error", errMsg);
+                })
+            } else {
+                const manifestData = params.manifest;
+                loadManifestData(manifestData);
+            }
         }
 
         return sceneModel;
@@ -378,6 +547,13 @@ class LASLoaderPlugin extends Plugin {
         spinner.processes++;
         this._dataSource.getLAS(params.src, (arrayBuffer) => {
                 this._parseModel(arrayBuffer, params, options, sceneModel).then(() => {
+                    sceneModel.scene.once("tick", () => {
+                        if (sceneModel.destroyed) {
+                            return;
+                        }
+                        sceneModel.scene.fire("modelLoaded", sceneModel.id); // FIXME: Assumes listeners know order of these two events
+                        sceneModel.fire("loaded", true, false); // Don't forget the event, for late subscribers
+                    });
                     spinner.processes--;
                 }, (errMsg) => {
                     spinner.processes--;
@@ -394,15 +570,61 @@ class LASLoaderPlugin extends Plugin {
 
     _parseModel(arrayBuffer, params, options, sceneModel) {
 
-        function readPositions(attributesPosition) {
+        const readPositions = (attributesPosition) => {
             const positionsValue = attributesPosition.value;
-            if (params.rotateX) {
+            if (this._center) {
+                const centerPos = math.vec3();
+                const numPoints = positionsValue.length;
+                for (let i = 0, len = positionsValue.length; i < len; i += 3) {
+                    centerPos[0] += positionsValue[i + 0];
+                    centerPos[1] += positionsValue[i + 1];
+                    centerPos[2] += positionsValue[i + 2];
+                }
+                centerPos[0] /= numPoints;
+                centerPos[1] /= numPoints;
+                centerPos[2] /= numPoints;
+                for (let i = 0, len = positionsValue.length; i < len; i += 3) {
+                    positionsValue[i + 0] -= centerPos[0];
+                    positionsValue[i + 1] -= centerPos[1];
+                    positionsValue[i + 2] -= centerPos[2];
+                }
+            }
+            if (this._rotateX) {
                 if (positionsValue) {
                     for (let i = 0, len = positionsValue.length; i < len; i += 3) {
                         const temp = positionsValue[i + 1];
                         positionsValue[i + 1] = positionsValue[i + 2];
                         positionsValue[i + 2] = temp;
                     }
+                }
+            }
+            if (this._rotate) {
+                const quaternion = math.identityQuaternion();
+                const mat = math.mat4();
+                math.eulerToQuaternion(this._rotate, "XYZ", quaternion);
+                math.quaternionToRotationMat4(quaternion, mat);
+                const pos = math.vec3();
+                for (let i = 0, len = positionsValue.length; i < len; i += 3) {
+                    pos[0] = positionsValue[i + 0];
+                    pos[1] = positionsValue[i + 1];
+                    pos[2] = positionsValue[i + 2];
+                    math.transformPoint3(mat, pos, pos);
+                    positionsValue[i + 0] = pos[0];
+                    positionsValue[i + 1] = pos[1];
+                    positionsValue[i + 2] = pos[2];
+                }
+            }
+            if (this._transform) {
+                const mat = math.mat4(this._transform);
+                const pos = math.vec3();
+                for (let i = 0, len = positionsValue.length; i < len; i += 3) {
+                    pos[0] = positionsValue[i + 0];
+                    pos[1] = positionsValue[i + 1];
+                    pos[2] = positionsValue[i + 2];
+                    math.transformPoint3(mat, pos, pos);
+                    positionsValue[i + 0] = pos[0];
+                    positionsValue[i + 1] = pos[1];
+                    positionsValue[i + 2] = pos[2];
                 }
             }
             return positionsValue;
@@ -514,7 +736,7 @@ class LASLoaderPlugin extends Plugin {
                     const meshIds = [];
 
                     for (let i = 0, len = pointsChunks.length; i < len; i++) {
-                        const meshId = `pointsMesh${i}`;
+                        const meshId = `${params.isManifest ? 'model'+params.index : ''}pointsMesh${i}`;
                         meshIds.push(meshId);
                         sceneModel.createMesh({
                             id: meshId,
@@ -523,30 +745,6 @@ class LASLoaderPlugin extends Plugin {
                             colorsCompressed: (i < colorsChunks.length) ? colorsChunks[i] : null
                         });
                     }
-                    /*
-                                const pointsChunks = chunkArray(positionsValue, MAX_VERTICES * 3);
-                    const colorsChunks = chunkArray(colorsCompressed, MAX_VERTICES * 4);
-                    const meshIds = [];
-
-                    for (let i = 0, len = pointsChunks.length; i < len; i++) {
-
-                        const geometryId = `geometryMesh${i}`;
-                        const meshId = `pointsMesh${i}`;
-                        meshIds.push(meshId);
-
-                        sceneModel.createGeometry({
-                            id: geometryId,
-                            primitive: "points",
-                            positions: pointsChunks[i],
-                            colorsCompressed: (i < colorsChunks.length) ? colorsChunks[i] : null
-                        });
-
-                        sceneModel.createMesh({
-                            id: meshId,
-                            geometryId
-                        });
-                    }
-                     */
 
                     const pointsObjectId = params.entityId || math.createUUID();
 
@@ -589,14 +787,6 @@ class LASLoaderPlugin extends Plugin {
                         this.viewer.metaScene.createMetaModel(metaModelId, metadata, options);
                     }
 
-                    sceneModel.scene.once("tick", () => {
-                        if (sceneModel.destroyed) {
-                            return;
-                        }
-                        sceneModel.scene.fire("modelLoaded", sceneModel.id); // FIXME: Assumes listeners know order of these two events
-                        sceneModel.fire("loaded", true, false); // Don't forget the event, for late subscribers
-                    });
-
                     resolve();
                 });
             } catch (e) {
@@ -616,6 +806,16 @@ function chunkArray(array, chunkSize) {
         result.push(array.slice(i, i + chunkSize));
     }
     return result;
+}
+
+function getBaseDirectory(filePath) {
+    if (filePath.indexOf('?') > -1) {
+        filePath = filePath.split('?')[0];
+    }
+
+    const pathArray = filePath.split('/');
+    pathArray.pop(); // Remove the file name or the last segment of the path
+    return pathArray.join('/') + '/';
 }
 
 export {LASLoaderPlugin};

@@ -1,4 +1,4 @@
-import { os } from "../../../viewer/utils/os.js";
+import { addContextMenuListener } from "./MenuEvent.js";
 /** @private */
 class Dot {
 
@@ -116,41 +116,10 @@ class Dot {
         }
 
         if (cfg.onContextMenu) {
-            if(os.isIphoneSafari()){
-                dotClickable.addEventListener('touchstart', (event) => {
-                    event.preventDefault();
-                    if(this._timeout){
-                        clearTimeout(this._timeout);
-                        this._timeout = null;
-                    }
-                    this._timeout = setTimeout(() => {
-                        event.clientX = event.touches[0].clientX;
-                        event.clientY = event.touches[0].clientY;
-                        cfg.onContextMenu(event, this);
-                        clearTimeout(this._timeout);
-                        this._timeout = null;
-                    }, 500);
-                })
-
-                dotClickable.addEventListener('touchend', (event) => {
-                    event.preventDefault();
-                    //stops short touches from calling the timeout
-                    if(this._timeout) {
-                        clearTimeout(this._timeout);
-                        this._timeout = null;
-                    }
-                } )
-
+            const contextMenuCallback = (event) => {
+                cfg.onContextMenu(event, this);
             }
-            else {
-                dotClickable.addEventListener('contextmenu', (event) => {
-                    console.log(event);
-                    cfg.onContextMenu(event, this);
-                    event.preventDefault();
-                    event.stopPropagation();
-                    console.log("Label context menu")
-                });
-            }
+            addContextMenuListener(dotClickable, contextMenuCallback);
             
         }
 
@@ -163,12 +132,12 @@ class Dot {
         this._x = x;
         this._y = y;
         var dotStyle = this._dot.style;
-        dotStyle["left"] = (Math.round(x) - 4) + 'px';
-        dotStyle["top"] = (Math.round(y) - 4) + 'px';
+        dotStyle["left"] = (Math.round(x) - 6) + 'px';
+        dotStyle["top"] = (Math.round(y) - 6) + 'px';
 
         var dotClickableStyle = this._dotClickable.style;
-        dotClickableStyle["left"] = (Math.round(x) - 9) + 'px';
-        dotClickableStyle["top"] = (Math.round(y) - 9) + 'px';
+        dotClickableStyle["left"] = (Math.round(x) - 14) + 'px';
+        dotClickableStyle["top"] = (Math.round(y) - 14) + 'px';
     }
 
     setFillColor(color) {
@@ -183,12 +152,16 @@ class Dot {
         this._dot.style.opacity = opacity;
     }
 
+    _updateVisibility() {
+        this._dot.style.visibility = this._dotClickable.style.visibility = this._visible && !this._culled ? "visible" : "hidden";
+    }
+
     setVisible(visible) {
         if (this._visible === visible) {
             return;
         }
         this._visible = !!visible;
-        this._dot.style.visibility = this._visible && !this._culled ? "visible" : "hidden";
+        this._updateVisibility();
     }
 
     setCulled(culled) {
@@ -196,7 +169,7 @@ class Dot {
             return;
         }
         this._culled = !!culled;
-        this._dot.style.visibility = this._visible && !this._culled ? "visible" : "hidden";
+        this._updateVisibility();
     }
 
     setClickable(clickable) {

@@ -334,7 +334,7 @@ export class VBOInstancingTrianglesLayer {
             state.indicesBuf = new ArrayBuf(gl, gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(geometry.indices), geometry.indices.length, 1, gl.STATIC_DRAW);
             state.numIndices = geometry.indices.length;
         }
-        if (geometry.primitive === "triangles" || geometry.primitive === "solid" || geometry.primitive === "surface") {
+        if (geometry.edgeIndices && geometry.edgeIndices.length > 0) {
             state.edgeIndicesBuf = new ArrayBuf(gl, gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(geometry.edgeIndices), geometry.edgeIndices.length, 1, gl.STATIC_DRAW);
         }
 
@@ -377,6 +377,7 @@ export class VBOInstancingTrianglesLayer {
             = !!state.uvBuf
             && !!textureSet
             && !!textureSet.colorTexture;
+
 
         if (!this.model.scene.readableGeometryEnabled) {
             this._state.geometry = null;
@@ -708,21 +709,25 @@ export class VBOInstancingTrianglesLayer {
             return;
         }
         const positions = geometry.positionsCompressed;
-        const origin = state.origin;
+        const sceneModelMatrix = this.model.matrix;
+        const origin = math.vec4();
+        origin.set(state.origin, 0);
+        origin[3] = 1;
+        math.mulMat4v4(sceneModelMatrix, origin, origin);
         const offsetX = origin[0];
         const offsetY = origin[1];
         const offsetZ = origin[2];
         const worldPos = tempVec4a;
         const portionMatrix = portion.matrix;
-        const sceneModelMatrix = this.model.matrix;
         const positionsDecodeMatrix = state.positionsDecodeMatrix;
         for (let i = 0, len = positions.length; i < len; i += 3) {
             worldPos[0] = positions[i];
             worldPos[1] = positions[i + 1];
             worldPos[2] = positions[i + 2];
             math.decompressPosition(worldPos, positionsDecodeMatrix);
-            math.transformPoint3(portionMatrix, worldPos);
-            math.transformPoint3(sceneModelMatrix, worldPos);
+            math.transformPoint3(portionMatrix, worldPos, worldPos);
+            worldPos[3] = 1;
+            math.mulMat4v4(sceneModelMatrix, worldPos, worldPos);
             worldPos[0] += offsetX;
             worldPos[1] += offsetY;
             worldPos[2] += offsetZ;
@@ -778,6 +783,64 @@ export class VBOInstancingTrianglesLayer {
         tempFloat32Vec4[3] = matrix[14];
 
         this._state.modelMatrixCol2Buf.setData(tempFloat32Vec4, offset);
+    }
+
+    readGeometryData(portionId) {
+        if (!this._finalized) {
+            throw "Not finalized";
+        }
+
+        const state = this._state;
+        const sceneModelMatrix = this.model.matrix;
+
+        const col0 = state.modelMatrixCol0Buf.getData(portionId, 1);
+        const col1 = state.modelMatrixCol1Buf.getData(portionId, 1);
+        const col2 = state.modelMatrixCol2Buf.getData(portionId, 1);
+
+        const portionMatrix = [
+            col0[0], col1[0], col2[0], 0,
+            col0[1], col1[1], col2[1], 0,
+            col0[2], col1[2], col2[2], 0,
+            col0[3], col1[3], col2[3], 1,
+        ];
+
+        const positionsDecodeMatrix = state.positionsDecodeMatrix;
+
+        const origin = math.vec4();
+        origin.set(state.origin, 0);
+        origin[3] = 1;
+        math.mulMat4v4(sceneModelMatrix, origin, origin);
+
+        const indices = state.indicesBuf.getData();
+
+        const matrix = math.mulMat4(
+            portionMatrix,
+            positionsDecodeMatrix,
+            new Array(16)
+        );
+
+        math.mulMat4(
+            sceneModelMatrix,
+            matrix,
+            matrix
+        );
+
+        matrix[12] += origin[0];
+        matrix[13] += origin[1];
+        matrix[14] += origin[2];
+
+        const positionsQuantized = state.positionsBuf.getData();
+
+        const positions = math.transformPositions3(
+            matrix,
+            positionsQuantized,
+            new Array(positionsQuantized.length)
+        );
+
+        // const aabb = math.positions3ToAABB3(positions);
+        // console.log({aabbToniInstancing: aabb});
+
+        return { indices, positions };
     }
 
     // ---------------------- COLOR RENDERING -----------------------------------
@@ -838,7 +901,7 @@ export class VBOInstancingTrianglesLayer {
     }
 
     _updateBackfaceCull(renderFlags, frameCtx) {
-        const backfaces = this.model.backfaces || (!this.solid) || renderFlags.sectioned;
+        const backfaces = true; // See XCD-230
         if (frameCtx.backfaces !== backfaces) {
             const gl = frameCtx.gl;
             if (backfaces) {

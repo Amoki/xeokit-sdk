@@ -816,12 +816,15 @@ export class VBOBatchingTrianglesLayer {
             return;
         }
         const positions = portion.quantizedPositions;
-        const origin = state.origin;
-        const offsetX = origin[0] ;
-        const offsetY = origin[1] ;
-        const offsetZ = origin[2] ;
-        const worldPos = tempVec4a;
         const sceneModelMatrix = this.model.matrix;
+        const origin = math.vec4();
+        origin.set(state.origin, 0);
+        origin[3] = 1;
+        math.mulMat4v4(sceneModelMatrix, origin, origin);
+        const offsetX = origin[0];
+        const offsetY = origin[1];
+        const offsetZ = origin[2];
+        const worldPos = tempVec4a;
         const positionsDecodeMatrix = state.positionsDecodeMatrix;
         for (let i = 0, len = positions.length; i < len; i += 3) {
             worldPos[0] = positions[i];
@@ -829,7 +832,8 @@ export class VBOBatchingTrianglesLayer {
             worldPos[2] = positions[i + 2];
             worldPos[3] = 1.0;
             math.decompressPosition(worldPos, positionsDecodeMatrix);
-            math.transformPoint4(sceneModelMatrix, worldPos);
+            worldPos[3] = 1;
+            math.mulMat4v4(sceneModelMatrix, worldPos, worldPos);
             worldPos[0] += offsetX;
             worldPos[1] += offsetY;
             worldPos[2] += offsetZ;
@@ -863,6 +867,50 @@ export class VBOBatchingTrianglesLayer {
         }
 
         return {count, offset}
+    }
+
+    readGeometryData(portionId) {
+        if (!this._finalized) {
+            throw "Not finalized";
+        }
+
+        const portion = this._portions[portionId];
+        const state = this._state;
+        const sceneModelMatrix = this.model.matrix;
+        const positionsDecodeMatrix = state.positionsDecodeMatrix;
+
+        const origin = math.vec4();
+        origin.set(state.origin, 0); origin[3] = 1;
+        math.mulMat4v4(sceneModelMatrix, origin, origin);
+
+        const indices = state.indicesBuf.getData(
+            portion.indicesBaseIndex, portion.numIndices
+        ).map(i => i - portion.vertsBaseIndex);
+
+        const matrix = math.mulMat4(
+            sceneModelMatrix,
+            positionsDecodeMatrix,
+            new Array(16)
+        );
+
+        matrix[12] += origin[0];
+        matrix[13] += origin[1];
+        matrix[14] += origin[2];
+
+        const positionsQuantized = state.positionsBuf.getData(
+            portion.vertsBaseIndex, portion.numVerts
+        );
+
+        const positions = math.transformPositions3(
+            matrix,
+            positionsQuantized,
+            new Array(positionsQuantized.length)
+        );
+
+        // const aabb = math.positions3ToAABB3(positions);
+        // console.log({aabbToniBatching: aabb});
+
+        return { indices, positions };
     }
 
     // ---------------------- COLOR RENDERING -----------------------------------
@@ -925,7 +973,7 @@ export class VBOBatchingTrianglesLayer {
     }
 
     _updateBackfaceCull(renderFlags, frameCtx) {
-        const backfaces = this.model.backfaces || (!this.solid) || renderFlags.sectioned;
+        const backfaces = true; // See XCD-230
         if (frameCtx.backfaces !== backfaces) {
             const gl = frameCtx.gl;
             if (backfaces) {

@@ -108,6 +108,7 @@ class FastNavPlugin extends Plugin {
      * @param {Number} [cfg.scaleCanvasResolutionFactor=0.6] The factor by which we downscale the canvas resolution whenever we interact with the Viewer.
      * @param {Boolean} [cfg.delayBeforeRestore=true] Whether to temporarily have a delay before restoring normal rendering after we stop interacting with the Viewer.
      * @param {Number} [cfg.delayBeforeRestoreSeconds=0.5] Delay in seconds before restoring normal rendering after we stop interacting with the Viewer.
+     * @param {Function} [cfg.onMoved] Optional callback function fired during moving mode, should return the callback function that will be fired when the interaction stops.
      */
     constructor(viewer, cfg = {}) {
 
@@ -119,10 +120,12 @@ class FastNavPlugin extends Plugin {
         this._hideEdges = cfg.hideEdges !== false;
         this._hideTransparentObjects = !!cfg.hideTransparentObjects;
         this._scaleCanvasResolution = !!cfg.scaleCanvasResolution;
-        this._defaultScaleCanvasResolutionFactor = cfg.defaultScaleCanvasResolutionFactor || 1.0;
+        this._defaultScaleCanvasResolutionFactor = cfg.defaultScaleCanvasResolutionFactor;
         this._scaleCanvasResolutionFactor = cfg.scaleCanvasResolutionFactor || 0.6;
         this._delayBeforeRestore = (cfg.delayBeforeRestore !== false);
         this._delayBeforeRestoreSeconds = cfg.delayBeforeRestoreSeconds || 0.5;
+        this._onMoved = cfg.onMoved;
+        this._onStopped = null;
 
         let timer = this._delayBeforeRestoreSeconds * 1000;
         let fastMode = false;
@@ -135,26 +138,33 @@ class FastNavPlugin extends Plugin {
                 viewer.scene._renderer.setSAOEnabled(!this._hideSAO);
                 viewer.scene._renderer.setTransparentEnabled(!this._hideTransparentObjects);
                 viewer.scene._renderer.setEdgesEnabled(!this._hideEdges);
+                this._originalCanvasResolutionScale = viewer.scene.canvas.resolutionScale;
                 if (this._scaleCanvasResolution) {
                     viewer.scene.canvas.resolutionScale = this._scaleCanvasResolutionFactor;
                 } else {
                     viewer.scene.canvas.resolutionScale = this._defaultScaleCanvasResolutionFactor;
                 }
+                if (this._onMoved) {
+                    this._onStopped = this._onMoved();
+                }
+
                 fastMode = true;
             }
         };
 
         const switchToHighQuality = () => {
-            viewer.scene.canvas.resolutionScale = this._defaultScaleCanvasResolutionFactor;
+            viewer.scene.canvas.resolutionScale = this._defaultScaleCanvasResolutionFactor || this._originalCanvasResolutionScale || 1.0;
             viewer.scene._renderer.setEdgesEnabled(true);
             viewer.scene._renderer.setColorTextureEnabled(true);
             viewer.scene._renderer.setPBREnabled(true);
             viewer.scene._renderer.setSAOEnabled(true);
             viewer.scene._renderer.setTransparentEnabled(true);
+            if (this._onStopped) {
+                this._onStopped();
+            }
             fastMode = false;
         };
 
-        this._onCanvasBoundary = viewer.scene.canvas.on("boundary", switchToLowQuality);
         this._onCameraMatrix = viewer.scene.camera.on("matrix", switchToLowQuality);
 
         this._onSceneTick = viewer.scene.on("tick", (tickEvent) => {
@@ -165,23 +175,6 @@ class FastNavPlugin extends Plugin {
             if ((!this._delayBeforeRestore) || timer <= 0) {
                 switchToHighQuality();
             }
-        });
-
-        let down = false;
-
-        this._onSceneMouseDown = viewer.scene.input.on("mousedown", () => {
-            down = true;
-        });
-
-        this._onSceneMouseUp = viewer.scene.input.on("mouseup", () => {
-            down = false;
-        });
-
-        this._onSceneMouseMove = viewer.scene.input.on("mousemove", () => {
-            if (!down) {
-                return;
-            }
-            switchToLowQuality();
         });
     }
 
@@ -350,7 +343,7 @@ class FastNavPlugin extends Plugin {
      * @param {Number} defaultScaleCanvasResolutionFactor Factor by scale canvas resolution when we stop interacting with the viewer.
      */
     set defaultScaleCanvasResolutionFactor(defaultScaleCanvasResolutionFactor) {
-        this._defaultScaleCanvasResolutionFactor = defaultScaleCanvasResolutionFactor || 1.0;
+        this._defaultScaleCanvasResolutionFactor = defaultScaleCanvasResolutionFactor;
     }
 
     /**

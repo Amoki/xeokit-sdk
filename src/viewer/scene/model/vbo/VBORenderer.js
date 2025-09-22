@@ -132,7 +132,7 @@ export class VBORenderer {
                             const sectionPlane = sectionPlanes[sectionPlaneIndex];
                             const origin = layer._state.origin;
                             if (origin) {
-                                const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a);
+                                const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a, model.matrix);
                                 gl.uniform3fv(sectionPlaneUniforms.pos, rtcSectionPlanePos);
                             } else {
                                 gl.uniform3fv(sectionPlaneUniforms.pos, sectionPlane.pos);
@@ -407,7 +407,7 @@ export class VBORenderer {
         }
 
         if (this._instancing) {
-            if (this._edges) {
+            if (this._edges && state.edgeIndicesBuf) {
                 state.edgeIndicesBuf.bind();
             } else {
                 if (state.indicesBuf) {
@@ -415,7 +415,7 @@ export class VBORenderer {
                 }
             }
         } else {
-            if (this._edges) {
+            if (this._edges && state.edgeIndicesBuf) {
                 state.edgeIndicesBuf.bind();
             } else {
                 if (state.indicesBuf) {
@@ -439,7 +439,7 @@ export class VBORenderer {
         const {camera} = model.scene;
         const {viewNormalMatrix, project} = camera;
         const viewMatrix = frameCtx.pickViewMatrix || camera.viewMatrix
-        const {position, rotationMatrix, rotationMatrixConjugate, worldNormalMatrix} = model;
+        const {position, rotationMatrix, worldNormalMatrix} = model;
 
         if (!this._program) {
             this._allocate();
@@ -462,7 +462,7 @@ export class VBORenderer {
         let offset = 0;
         const mat4Size = 4 * 4;
 
-        this._matricesUniformBlockBufferData.set(rotationMatrixConjugate, 0);
+        this._matricesUniformBlockBufferData.set(rotationMatrix, 0);
 
         const gotOrigin = (origin[0] !== 0 || origin[1] !== 0 || origin[2] !== 0);
         const gotPosition = (position[0] !== 0 || position[1] !== 0 || position[2] !== 0);

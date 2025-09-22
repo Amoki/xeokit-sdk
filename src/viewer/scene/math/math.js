@@ -158,8 +158,20 @@ const math = {
      * @static
      * @returns {Number[]}
      */
-    mat4ToMat3(mat4, mat3) { // TODO
-        //return new FloatArrayType(values || 9);
+    mat4ToMat3(mat4, mat3 = new FloatArrayType(9)) {
+        mat3[0] = mat4[0];
+        mat3[1] = mat4[1];
+        mat3[2] = mat4[2];
+        
+        mat3[3] = mat4[4];
+        mat3[4] = mat4[5];
+        mat3[5] = mat4[6];
+        
+        mat3[6] = mat4[8];
+        mat3[7] = mat4[9];
+        mat3[8] = mat4[10];
+        
+        return mat3;
     },
 
     /**
@@ -247,6 +259,16 @@ const math = {
      */
     compareVec3(v1, v2) {
         return (v1[0] === v2[0] && v1[1] === v2[1] && v1[2] === v2[2]);
+    },
+
+    /**
+     * Returns true if the two 4-element vectors are the same.
+     * @param v1
+     * @param v2
+     * @returns {Boolean}
+     */
+    compareVec4(v1, v2) {
+        return (v1[0] === v2[0] && v1[1] === v2[1] && v1[2] === v2[2] && v1[3] === v2[3]);
     },
 
     /**
@@ -1965,7 +1987,7 @@ const math = {
      * @param {Number[]} mat The 4x4 matrix.
      * @param {String} order Desired Euler angle order: "XYZ", "YXZ", "ZXY" etc.
      * @param {Number[]} [dest] Destination Euler angles, created by default.
-     * @returns {Number[]} The Euler angles.
+     * @returns {Number[]} The Euler angles (in degrees).
      */
     mat4ToEuler(mat, order, dest = math.vec4()) {
         const clamp = math.clamp;
@@ -2056,6 +2078,10 @@ const math = {
                 dest[1] = 0;
             }
         }
+
+        dest[0] *= math.RADTODEG;
+        dest[1] *= math.RADTODEG;
+        dest[2] *= math.RADTODEG;
 
         return dest;
     },
@@ -2866,7 +2892,7 @@ const math = {
     /**
      * Initializes a quaternion from Euler angles.
      *
-     * @param {Number[]} euler The Euler angles.
+     * @param {Number[]} euler The Euler angles (in degrees).
      * @param {String} order Euler angle order: "XYZ", "YXZ", "ZXY" etc.
      * @param {Number[]} [dest] Destination quaternion, created by default.
      * @returns {Number[]} The quaternion.
@@ -4947,9 +4973,10 @@ const math = {
 
             // Calculate clip space coordinates, which will be in range
             // of x=[-1..1] and y=[-1..1], with y=(+1) at top
-
-            const clipX =     2 * canvasPos[0] / canvas.width - 1;  // Calculate clip space coordinates
-            const clipY = 1 - 2 * canvasPos[1] / canvas.height;
+            // clientWidth/Height needs to be used in case canvas.width/height is scaled down,
+            // but not reflecting client dimensions (e.g. when using FastNavPlugin)
+            const clipX =     2 * canvasPos[0] / canvas.clientWidth - 1;  // Calculate clip space coordinates
+            const clipY = 1 - 2 * canvasPos[1] / canvas.clientHeight;
 
             clipToWorld(clipX, clipY, -1, isOrtho, vec4Near);
 

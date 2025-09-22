@@ -1,10 +1,10 @@
-import {math} from "../../viewer/scene/math/math.js";
-import {utils} from "../../viewer/scene/utils.js";
-import {core} from "../../viewer/scene/core.js";
-import {sRGBEncoding} from "../../viewer/scene/constants/constants.js";
-import {worldToRTCPositions} from "../../viewer/scene/math/rtcCoords.js";
-import {parse} from '@loaders.gl/core';
-import {GLTFLoader} from '@loaders.gl/gltf/dist/esm/gltf-loader.js';
+import { parse } from '@loaders.gl/core';
+import { GLTFLoader, postProcessGLTF } from '@loaders.gl/gltf';
+import { sRGBEncoding } from "../../viewer/scene/constants/constants.js";
+import { core } from "../../viewer/scene/core.js";
+import { math } from "../../viewer/scene/math/math.js";
+import { worldToRTCPositions } from "../../viewer/scene/math/rtcCoords.js";
+import { utils } from "../../viewer/scene/utils.js";
 
 import {
     ClampToEdgeWrapping,
@@ -98,23 +98,25 @@ function getBasePath(src) {
     return (i !== 0) ? src.substring(0, i + 1) : "";
 }
 
-function parseGLTF(plugin, src, gltf, metaModelJSON, options, sceneModel, ok) {
+function parseGLTF(plugin, src, gltf, metaModelJSON, options, sceneModel, ok, error) {
     const spinner = plugin.viewer.scene.canvas.spinner;
     spinner.processes++;
     parse(gltf, GLTFLoader, {
         baseUri: options.basePath
     }).then((gltfData) => {
+        const processedGLTF = postProcessGLTF(gltfData);
         const ctx = {
             src: src,
             entityId: options.entityId,
             metaModelJSON,
             autoMetaModel: options.autoMetaModel,
+            globalizeObjectIds: options.globalizeObjectIds,
             metaObjects: [],
             loadBuffer: options.loadBuffer,
             basePath: options.basePath,
             handlenode: options.handlenode,
             backfaces: !!options.backfaces,
-            gltfData: gltfData,
+            gltfData: processedGLTF,
             scene: sceneModel.scene,
             plugin: plugin,
             sceneModel: sceneModel,
@@ -144,6 +146,8 @@ function parseGLTF(plugin, src, gltf, metaModelJSON, options, sceneModel, ok) {
         }
         spinner.processes--;
         ok();
+    }).catch((err) => {
+        if (error) error(err);
     });
 }
 
@@ -444,16 +448,17 @@ function loadDefaultScene(ctx) {
 
             if (entityId) {
                 if (meshIds.length > 0) {
+                    const globalId = ctx.globalizeObjectIds ? math.globalizeObjectId(ctx.sceneModel.id, entityId) : entityId;
                     ctx.sceneModel.createEntity({
-                        id: entityId,
+                        id: globalId,
                         meshIds: meshIds,
                         isObject: true
                     });
                     if (ctx.autoMetaModel) {
                         ctx.metaObjects.push({
-                            id: entityId,
+                            id: globalId,
                             type: "Default",
-                            name: entityId,
+                            name: globalId,
                             parent: ctx.sceneModel.id
                         });
                     }
@@ -603,4 +608,5 @@ function error(ctx, msg) {
     ctx.plugin.error(msg);
 }
 
-export {GLTFSceneModelLoader};
+export { GLTFSceneModelLoader };
+

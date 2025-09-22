@@ -39,7 +39,7 @@ export class VBOInstancingLinesSnapRenderer extends VBORenderer {
         const gl = scene.canvas.gl;
         const state = instancingLayer._state;
         const origin = instancingLayer._state.origin;
-        const {position, rotationMatrix, rotationMatrixConjugate} = model;
+        const {position, rotationMatrix} = model;
         const aabb = instancingLayer.aabb; // Per-layer AABB for best RTC accuracy
         const viewMatrix = frameCtx.pickViewMatrix || camera.viewMatrix;
 
@@ -96,7 +96,7 @@ export class VBOInstancingLinesSnapRenderer extends VBORenderer {
         let offset = 0;
         const mat4Size = 4 * 4;
 
-        this._matricesUniformBlockBufferData.set(rotationMatrixConjugate, 0);
+        this._matricesUniformBlockBufferData.set(rotationMatrix, 0);
         this._matricesUniformBlockBufferData.set(rtcViewMatrix, offset += mat4Size);
         this._matricesUniformBlockBufferData.set(camera.projMatrix, offset += mat4Size);
         this._matricesUniformBlockBufferData.set(state.positionsDecodeMatrix, offset += mat4Size);
@@ -116,17 +116,6 @@ export class VBOInstancingLinesSnapRenderer extends VBORenderer {
 
         this.setSectionPlanesStateUniforms(instancingLayer);
 
-
-        this._aModelMatrixCol0.bindArrayBuffer(state.modelMatrixCol0Buf);
-        this._aModelMatrixCol1.bindArrayBuffer(state.modelMatrixCol1Buf);
-        this._aModelMatrixCol2.bindArrayBuffer(state.modelMatrixCol2Buf);
-        gl.vertexAttribDivisor(this._aModelMatrixCol0.location, 1);
-        gl.vertexAttribDivisor(this._aModelMatrixCol1.location, 1);
-        gl.vertexAttribDivisor(this._aModelMatrixCol2.location, 1);
-
-        this._aFlags.bindArrayBuffer(state.flagsBuf);
-        gl.vertexAttribDivisor(this._aFlags.location, 1);
-
         if (frameCtx.snapMode === "edge") {
             state.indicesBuf.bind();
             gl.drawElementsInstanced(gl.LINES, state.indicesBuf.numItems, state.indicesBuf.itemType, 0, state.numInstances);
@@ -134,14 +123,8 @@ export class VBOInstancingLinesSnapRenderer extends VBORenderer {
         } else {
             gl.drawArraysInstanced(gl.POINTS, 0, state.positionsBuf.numItems, state.numInstances);
         }
-        // Cleanup
-        gl.vertexAttribDivisor(this._aModelMatrixCol0.location, 0);
-        gl.vertexAttribDivisor(this._aModelMatrixCol1.location, 0);
-        gl.vertexAttribDivisor(this._aModelMatrixCol2.location, 0);
-        gl.vertexAttribDivisor(this._aFlags.location, 0);
-        if (this._aOffset) {
-            gl.vertexAttribDivisor(this._aOffset.location, 0);
-        }
+
+        gl.bindVertexArray(null);
     }
 
     _allocate() {

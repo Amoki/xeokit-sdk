@@ -21,6 +21,7 @@ import {PointsMaterial} from "../materials/PointsMaterial.js";
 import {LinesMaterial} from "../materials/LinesMaterial.js";
 import {LOD} from "../lod/LOD.js";
 import {VFC} from "../vfc/VFC.js";
+import {SectionCaps} from '../sectionCaps/SectionCaps.js';
 
 // Enables runtime check for redundant calls to object state update methods, eg. Scene#_objectVisibilityUpdated
 const ASSERT_OBJECT_STATE_UPDATE = false;
@@ -349,13 +350,12 @@ class Scene extends Component {
      * configures renderer logic for the specified number of SectionPlanes, eliminating the need for setting up logic with each SectionPlane creation and thereby enhancing
      * responsiveness. It is important to consider that each SectionPlane imposes rendering performance, so it is recommended to set this value to a quantity that aligns with
      * your expected usage.
-     * @throws {String} Throws an exception when both canvasId or canvasElement are missing or they aren't pointing to a valid HTMLCanvasElement.
+     * @throws {String} Throws an exception when  canvasId or canvasElement are missing or they aren't pointing to a valid HTMLCanvasElement.
      */
     constructor(viewer, cfg = {}) {
 
         super(null, cfg);
-
-        const canvas = cfg.canvasElement || document.getElementById(cfg.canvasId);
+        const canvas = cfg.canvasElement || document.querySelector(`#${cfg.canvasId}`);
 
         if (!(canvas instanceof HTMLCanvasElement)) {
             throw "Mandatory config expected: valid canvasId or canvasElement";
@@ -890,6 +890,8 @@ class Scene extends Component {
             dontClear: true // Never destroy this component with Scene#clear();
         });
 
+        this._sectionCaps = new SectionCaps(this);
+
         // Default lights
 
         new AmbientLight(this, {
@@ -1006,6 +1008,10 @@ class Scene extends Component {
     // Methods below are called by various component types to register themselves on their
     // Scene. Violates Hollywood Principle, where we could just filter on type in _addComponent,
     // but this is faster than checking the type of each component in such a filter.
+
+    _capMaterialUpdated(entityId, modelId) {
+        this._sectionCaps._onCapMaterialUpdated(entityId, modelId);
+    }
 
     _sectionPlaneCreated(sectionPlane) {
         this.sectionPlanes[sectionPlane.id] = sectionPlane;
@@ -2013,7 +2019,13 @@ class Scene extends Component {
     get xrayMaterial() {
         return this.components["default.xrayMaterial"] || new EmphasisMaterial(this, {
             id: "default.xrayMaterial",
-            preset: "sepia",
+            fill: true,
+            fillColor: [0.970588207244873, 0.7965892553329468, 0.6660899519920349],
+            fillAlpha: 0.4,
+            edges: true,
+            edgeColor: [0.529411792755127, 0.4577854573726654, 0.4100345969200134],
+            edgeAlpha: 1.0,
+            edgeWidth: 1,
             dontClear: true
         });
     }
@@ -2032,7 +2044,13 @@ class Scene extends Component {
     get highlightMaterial() {
         return this.components["default.highlightMaterial"] || new EmphasisMaterial(this, {
             id: "default.highlightMaterial",
-            preset: "yellowHighlight",
+            fill: true,
+            fillColor: [1.0, 1.0, 0.0],
+            fillAlpha: 0.5,
+            edges: true,
+            edgeColor: [1.0, 1.0, 1.0],
+            edgeAlpha: 1.0,
+            edgeWidth: 1,
             dontClear: true
         });
     }
@@ -2051,7 +2069,13 @@ class Scene extends Component {
     get selectedMaterial() {
         return this.components["default.selectedMaterial"] || new EmphasisMaterial(this, {
             id: "default.selectedMaterial",
-            preset: "greenSelected",
+            fill: true,
+            fillColor: [0.0, 1.0, 0.0],
+            fillAlpha: 0.5,
+            edges: true,
+            edgeColor: [1.0, 1.0, 1.0],
+            edgeAlpha: 1.0,
+            edgeWidth: 1,
             dontClear: true
         });
     }
@@ -2070,7 +2094,10 @@ class Scene extends Component {
     get edgeMaterial() {
         return this.components["default.edgeMaterial"] || new EdgeMaterial(this, {
             id: "default.edgeMaterial",
-            preset: "default",
+            fill: true,
+            fillColor: [0.4, 0.4, 0.4],
+            fillAlpha: 0.2,
+            edges: true,
             edgeColor: [0.0, 0.0, 0.0],
             edgeAlpha: 1.0,
             edgeWidth: 1,
@@ -2086,7 +2113,13 @@ class Scene extends Component {
     get pointsMaterial() {
         return this.components["default.pointsMaterial"] || new PointsMaterial(this, {
             id: "default.pointsMaterial",
-            preset: "default",
+            fill: true,
+            fillColor: [0.4, 0.4, 0.4],
+            fillAlpha: 0.2,
+            edges: true,
+            edgeColor: [0.2, 0.2, 0.2],
+            edgeAlpha: 0.5,
+            edgeWidth: 1,
             dontClear: true
         });
     }
@@ -2099,7 +2132,13 @@ class Scene extends Component {
     get linesMaterial() {
         return this.components["default.linesMaterial"] || new LinesMaterial(this, {
             id: "default.linesMaterial",
-            preset: "default",
+            fill: true,
+            fillColor: [0.4, 0.4, 0.4],
+            fillAlpha: 0.2,
+            edges: true,
+            edgeColor: [0.2, 0.2, 0.2],
+            edgeAlpha: 0.5,
+            edgeWidth: 1,
             dontClear: true
         });
     }
@@ -2815,6 +2854,9 @@ class Scene extends Component {
             }
         }
 
+        //destroy section caps separately because it's not a component
+        this._sectionCaps.destroy();
+
         this.canvas.gl = null;
 
         // Memory leak prevention
@@ -2837,6 +2879,7 @@ class Scene extends Component {
         this._highlightedObjectIds = null;
         this._selectedObjectIds = null;
         this._colorizedObjectIds = null;
+        this._sectionCaps = null;
         this.types = null;
         this.components = null;
         this.canvas = null;

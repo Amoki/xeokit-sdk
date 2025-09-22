@@ -1,4 +1,5 @@
 import {math} from "../../viewer/scene/math/math.js";
+import {transformToNode} from "../lib/ui/index.js";
 import {AngleMeasurementsControl} from "./AngleMeasurementsControl.js";
 
 const MOUSE_FINDING_ORIGIN = 0;
@@ -172,9 +173,6 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
         const mouseHoverCanvasPos = math.vec2();
         this._currentAngleMeasurement = null;
 
-        const getTop = el => el.offsetTop + (el.offsetParent && (el.offsetParent !== canvas.parentNode) && getTop(el.offsetParent));
-        const getLeft = el => el.offsetLeft + (el.offsetParent && (el.offsetParent !== canvas.parentNode) && getLeft(el.offsetParent));
-
         const pagePos = math.vec2();
 
         const hoverOn = event => {
@@ -209,8 +207,10 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                             this.markerDiv.style.left = `${pagePos[0] - 5}px`;
                             this.markerDiv.style.top = `${pagePos[1] - 5}px`;
                         } else {
-                            this.markerDiv.style.left = `${getLeft(canvas) + canvasPos[0] - 5}px`;
-                            this.markerDiv.style.top = `${getTop(canvas) + canvasPos[1] - 5}px`;
+                            const markerPos = math.vec2(canvasPos);
+                            transformToNode(canvas, this.markerDiv.parentNode, markerPos);
+                            this.markerDiv.style.left = `${markerPos[0] - 5}px`;
+                            this.markerDiv.style.top = `${markerPos[1] - 5}px`;
                         }
                         break;
                     case MOUSE_FINDING_CORNER:
@@ -335,7 +335,7 @@ export class AngleMeasurementsMouseControl extends AngleMeasurementsControl {
                 mouseHovering = false;
                 if (pointerLens) {
                     pointerLens.visible = true;
-                    pointerLens.pointerPos = event.canvasPos;
+                    pointerLens.canvasPos = event.canvasPos;
                     pointerLens.snappedCanvasPos = event.snappedCanvasPos || event.canvasPos;
                     pointerLens.snapped = false;
                 }

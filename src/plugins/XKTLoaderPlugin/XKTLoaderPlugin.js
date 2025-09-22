@@ -16,6 +16,7 @@ import {ParserV8} from "./parsers/ParserV8.js";
 import {ParserV9} from "./parsers/ParserV9.js";
 import {ParserV10} from "./parsers/ParserV10.js";
 import {ParserV11} from "./parsers/ParserV11.js";
+import {ParserV12} from './parsers/ParserV12.js';
 
 
 const parsers = {};
@@ -31,6 +32,7 @@ parsers[ParserV8.version] = ParserV8;
 parsers[ParserV9.version] = ParserV9;
 parsers[ParserV10.version] = ParserV10;
 parsers[ParserV11.version] = ParserV11;
+parsers[ParserV12.version] = ParserV12;
 
 /**
  * {@link Viewer} plugin that loads models from xeokit's optimized *````.XKT````* format.
@@ -253,6 +255,20 @@ parsers[ParserV11.version] = ParserV11;
  * });
  * ````
  *
+ * # Including specific elements by id
+ *
+ * We can also load only those objects that have the specified ids.
+ *
+ * In the example below, we'll load only the objects that represent a specified wall with 4 windows.
+ *
+ * ````javascript
+ * const model4 = xktLoader.load({
+ *      id: "myModel4",
+ *      src: "../../assets/models/xkt/v10/glTF-Embedded/Duplex_A_20110505.glTFEmbedded.xkt",
+ *      includeIds: ["2O2Fr$t4X7Zf8NOew3FLOH", "1hOSvn6df7F8_7GcBWlS_W", "1hOSvn6df7F8_7GcBWlS4Q", "1hOSvn6df7F8_7GcBWlS1M", "1hOSvn6df7F8_7GcBWlS2V"],
+ * });
+ * ````
+ *
  * # Configuring initial IFC object appearances
  *
  * We can specify the custom initial appearance of loaded objects according to their IFC types.
@@ -427,7 +443,7 @@ parsers[ParserV11.version] = ParserV11;
  *
  * ````javascript
  * const sceneModel = xktLoader.load({
- *   manifestSrc: "https://xeokit.github.io/xeokit-sdk/assets/models/models/xkt/Schependomlaan.xkt",
+ *   src: "https://xeokit.github.io/xeokit-sdk/assets/models/models/xkt/Schependomlaan.xkt",
  *   id: "myModel",
  * });
  * ````
@@ -748,6 +764,34 @@ class XKTLoaderPlugin extends Plugin {
     }
 
     /**
+     * Gets the whitelist of the specified elements loaded by this XKTLoaderPlugin.
+     *
+     * When loading models with metadata, causes this XKTLoaderPlugin to only load objects whose ids are in this
+     * list. An object's id is indicated by its {@link MetaObject}'s {@link MetaObject#id}.
+     *
+     * Default value is ````undefined````.
+     *
+     * @type {String[]}
+     */
+    get includeIds() {
+        return this._includeIds;
+    }
+
+    /**
+     * Sets the whitelist of the specified elements by this XKTLoaderPlugin.
+     *
+     * When loading models with metadata, causes this XKTLoaderPlugin to only load objects whose ids are in this
+     * list. An object's id is indicated by its {@link MetaObject}'s {@link MetaObject#id}.
+     *
+     * Default value is ````undefined````.
+     *
+     * @type {String[]}
+     */
+    set includeIds(value) {
+        this._includeIds = value;
+    }
+
+    /**
      * Gets whether we load objects that don't have IFC types.
      *
      * When loading models with metadata and this is ````true````, XKTLoaderPlugin will not load objects
@@ -859,6 +903,7 @@ class XKTLoaderPlugin extends Plugin {
      * @param {{String:Object}} [params.objectDefaults] Map of initial default states for each loaded {@link Entity} that represents an object. Default value is {@link IFCObjectDefaults}.
      * @param {String[]} [params.includeTypes] When loading metadata, only loads objects that have {@link MetaObject}s with {@link MetaObject#type} values in this list.
      * @param {String[]} [params.excludeTypes] When loading metadata, never loads objects that have {@link MetaObject}s with {@link MetaObject#type} values in this list.
+     * @param {String[]} [params.includeIds] When loading metadata, only loads objects that have {@link MetaObject}s with {@link MetaObject#id} values in this list.
      * @param {Boolean} [params.edges=false] Whether or not xeokit renders the model with edges emphasized.
      * @param {Number[]} [params.origin=[0,0,0]] The model's World-space double-precision 3D origin. Use this to position the model within xeokit's World coordinate system, using double-precision coordinates.
      * @param {Number[]} [params.position=[0,0,0]] The model single-precision 3D position, relative to the ````origin```` parameter.
@@ -894,14 +939,13 @@ class XKTLoaderPlugin extends Plugin {
             delete params.id;
         }
 
-        if (!params.src && !params.xkt && !params.manifestSrc && !params.manifest) {
-            this.error("load() param expected: src, xkt, manifestSrc or manifestData");
-            return sceneModel; // Return new empty model
-        }
+        if (!params.src && !params.xkt && !params.manifestSrc && !params.manifest)
+            throw new Error("XKTLoaderPlugin: load() param expected: src, xkt, manifestSrc or manifestData");
 
         const options = {};
         const includeTypes = params.includeTypes || this._includeTypes;
         const excludeTypes = params.excludeTypes || this._excludeTypes;
+        const includeIds = params.includeIds || this._includeIds;
         const objectDefaults = params.objectDefaults || this._objectDefaults;
 
         options.reuseGeometries = (params.reuseGeometries !== null && params.reuseGeometries !== undefined) ? params.reuseGeometries : (this._reuseGeometries !== false);
@@ -917,6 +961,13 @@ class XKTLoaderPlugin extends Plugin {
             options.excludeTypesMap = {};
             for (let i = 0, len = excludeTypes.length; i < len; i++) {
                 options.excludeTypesMap[excludeTypes[i]] = true;
+            }
+        }
+
+        if (includeIds) {
+            options.includeIdsMap = {};
+            for (let i = 0, len = includeIds.length; i < len; i++) {
+                options.includeIdsMap[includeIds[i]] = true;
             }
         }
 
@@ -996,9 +1047,9 @@ class XKTLoaderPlugin extends Plugin {
                         globalizeObjectIds: options.globalizeObjectIds
                     });
                     if (params.src) {
-                        this._loadModel(params.src, params, options, sceneModel, null, manifestCtx, finish, error);
+                        this._loadModel(params.src, options, sceneModel, null, manifestCtx, finish, error);
                     } else {
-                        this._parseModel(params.xkt, params, options, sceneModel, null, manifestCtx);
+                        this._parseModel(params.xkt, options, sceneModel, null, manifestCtx);
                         finish();
                     }
                 }, (errMsg) => {
@@ -1012,9 +1063,9 @@ class XKTLoaderPlugin extends Plugin {
                     globalizeObjectIds: options.globalizeObjectIds
                 });
                 if (params.src) {
-                    this._loadModel(params.src, params, options, sceneModel, null, manifestCtx, finish, error);
+                    this._loadModel(params.src, options, sceneModel, null, manifestCtx, finish, error);
                 } else {
-                    this._parseModel(params.xkt, params, options, sceneModel, null, manifestCtx);
+                    this._parseModel(params.xkt, options, sceneModel, null, manifestCtx);
                     finish();
                 }
             }
@@ -1023,9 +1074,9 @@ class XKTLoaderPlugin extends Plugin {
         } else {
 
             if (params.src) {
-                this._loadModel(params.src, params, options, sceneModel, metaModel, manifestCtx, finish, error);
+                this._loadModel(params.src, options, sceneModel, metaModel, manifestCtx, finish, error);
             } else if (params.xkt) {
-                this._parseModel(params.xkt, params, options, sceneModel, metaModel, manifestCtx);
+                this._parseModel(params.xkt, options, sceneModel, metaModel, manifestCtx);
                 finish();
             } else if (params.manifestSrc || params.manifest) {
                 const baseDir = params.manifestSrc ? getBaseDirectory(params.manifestSrc) : "";
@@ -1059,7 +1110,7 @@ class XKTLoaderPlugin extends Plugin {
                             done();
                         } else {
                             this._dataSource.getXKT(`${baseDir}${xktFiles[i]}`, (arrayBuffer) => {
-                                this._parseModel(arrayBuffer, params, options, sceneModel, null /* Ignore metamodel in XKT */, manifestCtx);
+                                this._parseModel(arrayBuffer, options, sceneModel, null /* Ignore metamodel in XKT */, manifestCtx);
                                 sceneModel.preFinalize();
                                 i++;
                                 this.scheduleTask(loadNext, 200);
@@ -1077,7 +1128,7 @@ class XKTLoaderPlugin extends Plugin {
                             done();
                         } else {
                             this._dataSource.getXKT(`${baseDir}${xktFiles[i]}`, (arrayBuffer) => {
-                                this._parseModel(arrayBuffer, params, options, sceneModel, metaModel, manifestCtx);
+                                this._parseModel(arrayBuffer, options, sceneModel, metaModel, manifestCtx);
                                 sceneModel.preFinalize();
                                 i++;
                                 this.scheduleTask(loadNext, 200);
@@ -1127,21 +1178,23 @@ class XKTLoaderPlugin extends Plugin {
         return sceneModel;
     }
 
-    _loadModel(src, params, options, sceneModel, metaModel, manifestCtx, done, error) {
-        this._dataSource.getXKT(params.src, (arrayBuffer) => {
-            this._parseModel(arrayBuffer, params, options, sceneModel, metaModel, manifestCtx);
+    _loadModel(src, options, sceneModel, metaModel, manifestCtx, done, error) {
+        this._dataSource.getXKT(src, (arrayBuffer) => {
+            this._parseModel(arrayBuffer, options, sceneModel, metaModel, manifestCtx);
             sceneModel.preFinalize();
             done();
         }, error);
     }
 
-    async _parseModel(arrayBuffer, params, options, sceneModel, metaModel, manifestCtx) {
+    async _parseModel(arrayBuffer, options, sceneModel, metaModel, manifestCtx) {
         if (sceneModel.destroyed) {
             return;
         }
         const dataView = new DataView(arrayBuffer);
         const dataArray = new Uint8Array(arrayBuffer);
-        const xktVersion = dataView.getUint32(0, true);
+        const firstUint = dataView.getUint32(0, true);
+        const xktVersion = firstUint & 0x7fffffff;
+        const zipped = (xktVersion < 11) || ((xktVersion >= 12) && (firstUint >>> 31));
         const parser = parsers[xktVersion];
         if (!parser) {
             this.error("Unsupported .XKT file version: " + xktVersion + " - this XKTLoaderPlugin supports versions " + Object.keys(parsers));
@@ -1149,7 +1202,7 @@ class XKTLoaderPlugin extends Plugin {
         }
         //   this.log("Loading .xkt V" + xktVersion);
 
-        if (parser.parseArrayBuffer) {
+        if (!zipped) {
             parser.parseArrayBuffer(this.viewer, options, arrayBuffer, sceneModel, metaModel, manifestCtx);
             return;
         }
@@ -1167,6 +1220,10 @@ class XKTLoaderPlugin extends Plugin {
 }
 
 function getBaseDirectory(filePath) {
+    if (filePath.indexOf('?') > -1) {
+        filePath = filePath.split('?')[0];
+    }
+
     const pathArray = filePath.split('/');
     pathArray.pop(); // Remove the file name or the last segment of the path
     return pathArray.join('/') + '/';

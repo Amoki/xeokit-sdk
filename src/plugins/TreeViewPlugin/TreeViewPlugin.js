@@ -1,5 +1,5 @@
-import {Plugin} from "../../viewer/Plugin.js";
-import {RenderService} from "./RenderService.js";
+import { Plugin } from "../../viewer/Plugin.js";
+import { RenderService } from "./RenderService.js";
 
 const treeViews = [];
 
@@ -362,6 +362,9 @@ export class TreeViewPlugin extends Plugin {
      * @param {Boolean} [cfg.pruneEmptyNodes=true] When true, will not contain nodes that don't have content in the {@link Scene}. These are nodes whose {@link MetaObject}s don't have {@link Entity}s.
      * @param {RenderService} [cfg.renderService] Optional {@link RenderService} to use. Defaults to the {@link TreeViewPlugin}'s default {@link RenderService}.
      * @param {Boolean} [cfg.showIndeterminate=false] When true, will show indeterminate state for checkboxes when some but not all child nodes are checked
+     * @param {Boolean} [cfg.showProjectNode=false] When true, will show top level project node when hierarchy is set to "storeys"
+     * @param {Function} [cfg.elevationSortFunction] Optional function to replace the default elevation sort function. The function should take two nodes and return -1, 0 or 1. 
+     * @param {Function} [cfg.defaultSortFunction] Optional function to replace the default sort function. The function should take two nodes and return -1, 0 or 1.
      */
     constructor(viewer, cfg = {}) {
 
@@ -412,8 +415,11 @@ export class TreeViewPlugin extends Plugin {
         this._sortNodes = cfg.sortNodes;
         this._pruneEmptyNodes = cfg.pruneEmptyNodes;
         this._showListItemElementId = null;
-        this._renderService = cfg.renderService || new RenderService();
+        this._renderService = cfg.renderService || new RenderService(this._containerElement);
         this._showIndeterminate = cfg.showIndeterminate ?? false;
+        this._showProjectNode = cfg.showProjectNode ?? false;
+        this._elevationSortFunction = cfg.elevationSortFunction ?? undefined;
+        this._defaultSortFunction = cfg.defaultSortFunction ?? undefined;
 
         if (!this._renderService) {
             throw new Error('TreeViewPlugin: no render service set');
@@ -458,7 +464,8 @@ export class TreeViewPlugin extends Plugin {
                 const indeterminate = this._showIndeterminate 
                   && parent.numVisibleEntities > 0 
                   && parent.numVisibleEntities < parent.numEntities;
-                this._renderService.setCheckbox(parent.nodeId, (parent.numVisibleEntities > 0), indeterminate);
+                parent.checked = parent.numVisibleEntities > 0;
+                this._renderService.setCheckbox(parent.nodeId, parent.checked, indeterminate);
 
                 parent = parent.parent;
             }
@@ -533,7 +540,6 @@ export class TreeViewPlugin extends Plugin {
 
             let parent = checkedNode.parent;
             while (parent) {
-                parent.checked = visible;
                 
                 if (visible) {
                     parent.numVisibleEntities += numUpdated;
@@ -543,7 +549,8 @@ export class TreeViewPlugin extends Plugin {
                 const indeterminate = this._showIndeterminate 
                   && parent.numVisibleEntities > 0 
                   && parent.numVisibleEntities < parent.numEntities;
-                this._renderService.setCheckbox(parent.nodeId, (parent.numVisibleEntities > 0), indeterminate);
+                parent.checked = parent.numVisibleEntities > 0;
+                this._renderService.setCheckbox(parent.nodeId, parent.checked, indeterminate);
                 
                 parent = parent.parent;
             }
@@ -968,11 +975,11 @@ export class TreeViewPlugin extends Plugin {
     _createStoreysNodes() {
         const rootMetaObjects = this._viewer.metaScene.rootMetaObjects;
         for (let id in rootMetaObjects) {
-            this._createStoreysNodes2(rootMetaObjects[id], null, null, null);
+            this._createStoreysNodes2(rootMetaObjects[id], null, null, null, null);
         }
     }
 
-    _createStoreysNodes2(metaObject, buildingNode, storeyNode, typeNodes) {
+    _createStoreysNodes2(metaObject, projectNode, buildingNode, storeyNode, typeNodes) {
         if (this._pruneEmptyNodes && (metaObject._countEntities === 0)) {
             return;
         }
@@ -980,20 +987,41 @@ export class TreeViewPlugin extends Plugin {
         const metaObjectName = metaObject.name;
         const children = metaObject.children;
         const objectId = metaObject.id;
-        if (metaObjectType === "IfcBuilding") {
-            buildingNode = {
+
+        if (this._showProjectNode && metaObjectType === 'IfcProject') {
+            projectNode = {
                 nodeId: `${this._id}-${objectId}`,
-                objectId: objectId,
-                title: (metaObject.metaModels.length === 0) ? "na" : this._rootNames[metaObject.metaModels[0].id] || ((metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType),
+                objectId,
+                title: (metaObject.metaModels.length === 0) ? metaObjectName : this._rootNames[metaObject.metaModels[0].id] || ((metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType),
                 type: metaObjectType,
                 parent: null,
                 numEntities: 0,
                 numVisibleEntities: 0,
                 checked: false,
                 xrayed: false,
+                children: [],
+            };
+            this._rootNodes.push(projectNode);
+            this._objectNodes[projectNode.objectId] = projectNode;
+            this._nodeNodes[projectNode.nodeId] = projectNode;
+        } else if (metaObjectType === "IfcBuilding") {
+            buildingNode = {
+                nodeId: `${this._id}-${objectId}`,
+                objectId: objectId,
+                title: (metaObject.metaModels.length === 0) ? metaObjectName : this._rootNames[metaObject.metaModels[0].id] || ((metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType),
+                type: metaObjectType,
+                parent: projectNode,
+                numEntities: 0,
+                numVisibleEntities: 0,
+                checked: false,
+                xrayed: false,
                 children: []
             };
-            this._rootNodes.push(buildingNode);
+            if (projectNode) {
+                projectNode.children.push(buildingNode);
+            } else {
+                this._rootNodes.push(buildingNode);
+            }
             this._objectNodes[buildingNode.objectId] = buildingNode;
             this._nodeNodes[buildingNode.nodeId] = buildingNode;
         } else if (metaObjectType === "IfcBuildingStorey") {
@@ -1063,7 +1091,7 @@ export class TreeViewPlugin extends Plugin {
         if (children) {
             for (let i = 0, len = children.length; i < len; i++) {
                 const childMetaObject = children[i];
-                this._createStoreysNodes2(childMetaObject, buildingNode, storeyNode, typeNodes);
+                this._createStoreysNodes2(childMetaObject, projectNode, buildingNode, storeyNode, typeNodes);
             }
         }
     }
@@ -1087,7 +1115,7 @@ export class TreeViewPlugin extends Plugin {
             rootNode = {
                 nodeId: `${this._id}-${objectId}`,
                 objectId: objectId,
-                title: metaObject.metaModels.length === 0 ? "na" : this._rootNames[metaObject.metaModels[0].id] || ((metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType),
+                title: metaObject.metaModels.length === 0 ? metaObjectName : this._rootNames[metaObject.metaModels[0].id] || ((metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType),
                 type: metaObjectType,
                 parent: null,
                 numEntities: 0,
@@ -1168,7 +1196,7 @@ export class TreeViewPlugin extends Plugin {
         const node = {
             nodeId: `${this._id}-${objectId}`,
             objectId: objectId,
-            title: (!parent) ? metaObject.metaModels.length === 0 ? "na" : (this._rootNames[metaObject.metaModels[0].id] || metaObjectName) : (metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType,
+            title: (!parent) ? metaObject.metaModels.length === 0 ? metaObjectName : (this._rootNames[metaObject.metaModels[0].id] || metaObjectName) : (metaObjectName && metaObjectName !== "" && metaObjectName !== "Undefined" && metaObjectName !== "Default") ? metaObjectName : metaObjectType,
             type: metaObjectType,
             parent: parent,
             numEntities: 0,
@@ -1204,11 +1232,13 @@ export class TreeViewPlugin extends Plugin {
         if (!children || children.length === 0) {
             return;
         }
-        if (this._hierarchy === "storeys" && node.type === "IfcBuilding") {
-            // Assumes that children of an IfcBuilding will always be IfcBuildingStoreys
-            children.sort(this._getSpatialSortFunc());
+        const firstChild = children[0];
+        if ((this._hierarchy === "storeys" || this._hierarchy === "containment") &&  firstChild.type === "IfcBuildingStorey") {
+            if (this._elevationSortFunction) children.sort(this._elevationSortFunction);
+            else children.sort(this._getSpatialSortFunc());
         } else {
-            children.sort(this._alphaSortFunc);
+            if (this._defaultSortFunction) children.sort(this._defaultSortFunction)
+            else children.sort(this._alphaSortFunc);
         }
         for (let i = 0, len = children.length; i < len; i++) {
             const node = children[i];
@@ -1216,21 +1246,11 @@ export class TreeViewPlugin extends Plugin {
         }
     }
 
-    _getSpatialSortFunc() { // Creates cached sort func with Viewer in scope
+    _getSpatialSortFunc() {
         const viewer = this.viewer;
         const scene = viewer.scene;
         const camera = scene.camera;
-        const metaScene = viewer.metaScene;
-        return this._spatialSortFunc || (this._spatialSortFunc = (node1, node2) => {
-            if (!node1.aabb || !node2.aabb) {
-                // Sorting on lowest point of the AABB is likely more more robust when objects could overlap storeys
-                if (!node1.aabb) {
-                    node1.aabb = scene.getAABB(metaScene.getObjectIDsInSubtree(node1.objectId));
-                }
-                if (!node2.aabb) {
-                    node2.aabb = scene.getAABB(metaScene.getObjectIDsInSubtree(node2.objectId));
-                }
-            }
+        return this._spatialSortFunc || (this._spatialSortFunc = (storey1, storey2) => {
             let idx = 0;
             if (camera.xUp) {
                 idx = 0;
@@ -1239,13 +1259,24 @@ export class TreeViewPlugin extends Plugin {
             } else {
                 idx = 2;
             }
-            if (node1.aabb[idx] > node2.aabb[idx]) {
-                return -1;
+            const metaScene = this.viewer.metaScene;
+            const storey1MetaObject = metaScene.metaObjects[storey1.objectId];
+            const storey2MetaObject = metaScene.metaObjects[storey2.objectId];
+
+            if (storey1MetaObject && (storey1MetaObject.attributes && storey1MetaObject.attributes.elevation !== undefined) &&
+                storey2MetaObject && (storey2MetaObject.attributes && storey2MetaObject.attributes.elevation !== undefined)) {
+                const elevation1 = Number.parseFloat(storey1MetaObject.attributes.elevation);
+                const elevation2 = Number.parseFloat(storey2MetaObject.attributes.elevation);
+                if (elevation1 > elevation2) {
+                    return -1;
+                }
+                if (elevation1 < elevation2) {
+                    return 1;
+                }
+                return 0;
+            } else {
+                return 0;
             }
-            if (node1.aabb[idx] < node2.aabb[idx]) {
-                return 1;
-            }
-            return 0;
         });
     }
 

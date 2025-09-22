@@ -1565,13 +1565,8 @@ export class SceneModel extends Component {
      */
     set matrix(value) {
         this._matrix.set(value || DEFAULT_MATRIX);
-
-        math.quaternionToRotationMat4(this._quaternion, this._worldRotationMatrix);
-        math.conjugateQuaternion(this._quaternion, this._conjugateQuaternion);
-        math.quaternionToRotationMat4(this._quaternion, this._worldRotationMatrixConjugate);
-        this._matrix.set(this._worldRotationMatrix);
-        math.translateMat4v(this._position, this._matrix);
-
+        math.decomposeMat4(this._matrix, this._position, this._quaternion, this._scale);
+        math.quaternionToEuler(this._quaternion, "XYZ", this._rotation);
         this._matrixDirty = false;
         this._setWorldMatrixDirty();
         this._sceneModelDirty();
@@ -1586,9 +1581,7 @@ export class SceneModel extends Component {
      * @type {Number[]}
      */
     get matrix() {
-        if (this._matrixDirty) {
-            this._rebuildMatrices();
-        }
+        this._rebuildMatrices();
         return this._matrix;
     }
 
@@ -1598,9 +1591,7 @@ export class SceneModel extends Component {
      * @type {Number[]}
      */
     get rotationMatrix() {
-        if (this._matrixDirty) {
-            this._rebuildMatrices();
-        }
+        this._rebuildMatrices();
         return this._worldRotationMatrix;
     }
 
@@ -1608,10 +1599,13 @@ export class SceneModel extends Component {
         if (this._matrixDirty) {
             math.quaternionToRotationMat4(this._quaternion, this._worldRotationMatrix);
             math.conjugateQuaternion(this._quaternion, this._conjugateQuaternion);
-            math.quaternionToRotationMat4(this._quaternion, this._worldRotationMatrixConjugate);
+            math.quaternionToRotationMat4(this._conjugateQuaternion, this._worldRotationMatrixConjugate);
+            math.scaleMat4v(this._scale, this._worldRotationMatrix);
+            math.scaleMat4v(this._scale, this._worldRotationMatrixConjugate);
             this._matrix.set(this._worldRotationMatrix);
             math.translateMat4v(this._position, this._matrix);
             this._matrixDirty = false;
+            this._viewMatrixDirty = true;
         }
     }
 
@@ -1623,9 +1617,7 @@ export class SceneModel extends Component {
      * @type {Number[]}
      */
     get rotationMatrixConjugate() {
-        if (this._matrixDirty) {
-            this._rebuildMatrices();
-        }
+        this._rebuildMatrices();
         return this._worldRotationMatrixConjugate;
     }
 
@@ -1669,6 +1661,16 @@ export class SceneModel extends Component {
         return this._worldNormalMatrix;
     }
 
+    _rebuildViewMatrices() {
+        this._rebuildMatrices();
+        if (this._viewMatrixDirty) {
+            math.mulMat4(this.scene.camera.viewMatrix, this._matrix, this._viewMatrix);
+            math.inverseMat4(this._viewMatrix, this._viewNormalMatrix);
+            math.transposeMat4(this._viewNormalMatrix);
+            this._viewMatrixDirty = false;
+        }
+    }
+
     /**
      * Called by private renderers in ./lib, returns the view matrix with which to
      * render this SceneModel. The view matrix is the concatenation of the
@@ -1680,16 +1682,7 @@ export class SceneModel extends Component {
         if (!this._viewMatrix) {
             return this.scene.camera.viewMatrix;
         }
-        if (this._matrixDirty) {
-            this._rebuildMatrices();
-            this._viewMatrixDirty = true;
-        }
-        if (this._viewMatrixDirty) {
-            math.mulMat4(this.scene.camera.viewMatrix, this._matrix, this._viewMatrix);
-            math.inverseMat4(this._viewMatrix, this._viewNormalMatrix);
-            math.transposeMat4(this._viewNormalMatrix);
-            this._viewMatrixDirty = false;
-        }
+        this._rebuildViewMatrices();
         return this._viewMatrix;
     }
 
@@ -1702,18 +1695,7 @@ export class SceneModel extends Component {
         if (!this._viewNormalMatrix) {
             return this.scene.camera.viewNormalMatrix;
         }
-        if (this._matrixDirty) {
-            this._rebuildMatrices();
-            this._viewMatrixDirty = true;
-        }
-        if (this._viewMatrixDirty) {
-            math.mulMat4(this.scene.camera.viewMatrix, this._matrix, this._viewMatrix);
-            math.inverseMat4(this._viewMatrix, this._viewNormalMatrix);
-            math.transposeMat4(this._viewNormalMatrix);
-            this._viewMatrixDirty = false;
-        }
-        math.inverseMat4(this._viewMatrix, this._viewNormalMatrix);
-        math.transposeMat4(this._viewNormalMatrix);
+        this._rebuildViewMatrices();
         return this._viewNormalMatrix;
     }
 

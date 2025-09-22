@@ -35,7 +35,7 @@ export class VBOBatchingPointsSnapInitRenderer extends VBORenderer {
         const gl = scene.canvas.gl;
         const state = batchingLayer._state;
         const origin = batchingLayer._state.origin;
-        const {position, rotationMatrix, rotationMatrixConjugate} = model;
+        const {position, rotationMatrix} = model;
         const aabb = batchingLayer.aabb; // Per-layer AABB for best RTC accuracy
         const viewMatrix = frameCtx.pickViewMatrix || camera.viewMatrix;
 
@@ -96,11 +96,12 @@ export class VBOBatchingPointsSnapInitRenderer extends VBORenderer {
         gl.uniform3fv(this._uCoordinateScaler, coordinateScaler);
         gl.uniform1i(this._uRenderPass, renderPass);
         gl.uniform1i(this._uPickInvisible, frameCtx.pickInvisible);
+        gl.uniform1f(this._uPointSize, 1.0);
 
         let offset = 0;
         const mat4Size = 4 * 4;
 
-        this._matricesUniformBlockBufferData.set(rotationMatrixConjugate, 0);
+        this._matricesUniformBlockBufferData.set(rotationMatrix, 0);
         this._matricesUniformBlockBufferData.set(rtcViewMatrix, offset += mat4Size);
         this._matricesUniformBlockBufferData.set(camera.projMatrix, offset += mat4Size);
         this._matricesUniformBlockBufferData.set(state.positionsDecodeMatrix, offset += mat4Size);
@@ -124,6 +125,8 @@ export class VBOBatchingPointsSnapInitRenderer extends VBORenderer {
         //=============================================================
 
         gl.drawArrays(gl.POINTS, 0, state.positionsBuf.numItems);
+
+        gl.bindVertexArray(null);
     }
 
     _allocate() {
@@ -139,6 +142,7 @@ export class VBOBatchingPointsSnapInitRenderer extends VBORenderer {
         this.uInverseVectorAB = program.getLocation("snapInvVectorAB");
         this._uLayerNumber = program.getLocation("layerNumber");
         this._uCoordinateScaler = program.getLocation("coordinateScaler");
+        this._uPointSize = program.getLocation("pointSize");
     }
 
     _bindProgram() {
@@ -179,6 +183,7 @@ export class VBOBatchingPointsSnapInitRenderer extends VBORenderer {
         src.push("uniform vec3 uCameraEyeRtc;");
         src.push("uniform vec2 snapVectorA;");
         src.push("uniform vec2 snapInvVectorAB;");
+        src.push("uniform float pointSize;");
         if (SNAPPING_LOG_DEPTH_BUF_ENABLED) {
             src.push("uniform float logDepthBufFC;");
             src.push("out float vFragDepth;");
@@ -226,6 +231,7 @@ export class VBOBatchingPointsSnapInitRenderer extends VBORenderer {
             src.push("isPerspective = float (isPerspectiveMatrix(projMatrix));");
         }
         src.push("gl_Position = clipPos;");
+        src.push("gl_PointSize = pointSize;");
         src.push("  }");
         src.push("}");
         return src;

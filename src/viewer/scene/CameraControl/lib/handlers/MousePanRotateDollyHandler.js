@@ -39,6 +39,7 @@ class MousePanRotateDollyHandler {
         this._scene = scene;
 
         const pickController = controllers.pickController;
+        const cameraControl = controllers.cameraControl;
 
         let lastX = 0;
         let lastY = 0;
@@ -76,8 +77,15 @@ class MousePanRotateDollyHandler {
             keyDown[keyCode] = false;
         });
 
+        document.addEventListener("visibilitychange", this._onVisibilityChange = () => {
+            keyDown.splice(0);
+        })
+
+        window.addEventListener("blur", this._onBlur = () => {
+            keyDown.splice(0);
+        })
+
         function setMousedownState(pick = true) {
-            canvas.style.cursor = "move";
             setMousedownPositions();
             if (pick) {
                 setMousedownPick();
@@ -107,6 +115,15 @@ class MousePanRotateDollyHandler {
             }
         }
 
+        function isPanning() {
+            return configs.planView || cameraControl._isKeyDownForAction(cameraControl.MOUSE_PAN, keyDown);
+        }
+
+        function isRotating() {
+            return cameraControl._isKeyDownForAction(cameraControl.MOUSE_ROTATE, keyDown);
+        }
+
+
         canvas.addEventListener("mousedown", this._mouseDownHandler = (e) => {
 
             if (!(configs.active && configs.pointerEnabled)) {
@@ -120,12 +137,14 @@ class MousePanRotateDollyHandler {
                     if (keyDown[scene.input.KEY_SHIFT] || configs.planView) {
 
                         mouseDownLeft = true;
+                        keyDown[scene.input.MOUSE_LEFT_BUTTON] = true;
 
                         setMousedownState();
 
                     } else {
 
                         mouseDownLeft = true;
+                        keyDown[scene.input.MOUSE_LEFT_BUTTON] = true;
 
                         setMousedownState(false);
                     }
@@ -135,6 +154,7 @@ class MousePanRotateDollyHandler {
                 case 2: // Middle/both buttons
 
                     mouseDownMiddle = true;
+                    keyDown[scene.input.MOUSE_MIDDLE_BUTTON] = true;
 
                     setMousedownState();
 
@@ -143,6 +163,7 @@ class MousePanRotateDollyHandler {
                 case 3: // Right button
 
                     mouseDownRight = true;
+                    keyDown[scene.input.MOUSE_RIGHT_BUTTON] = true;
 
                     if (configs.panRightClick) {
 
@@ -175,7 +196,8 @@ class MousePanRotateDollyHandler {
             const x = states.pointerCanvasPos[0];
             const y = states.pointerCanvasPos[1];
 
-            const panning = keyDown[scene.input.KEY_SHIFT] || configs.planView || (!configs.panRightClick && mouseDownMiddle) || (configs.panRightClick && mouseDownRight);
+            const panning = isPanning();
+            const rotating = isRotating();
 
             const xDelta = document.pointerLockElement ? e.movementX : (x - lastX);
             const yDelta = document.pointerLockElement ? e.movementY : (y - lastY);
@@ -200,7 +222,7 @@ class MousePanRotateDollyHandler {
                     updates.panDeltaY += 0.5 * camera.ortho.scale * (yDelta / canvasHeight);
                 }
 
-            } else if (mouseDownLeft && !mouseDownMiddle && !mouseDownRight) {
+            } else if (rotating) {
 
                 if (!configs.planView) { // No rotating in plan-view mode
 
@@ -241,16 +263,25 @@ class MousePanRotateDollyHandler {
                     mouseDownLeft = false;
                     mouseDownMiddle = false;
                     mouseDownRight = false;
+                    keyDown[scene.input.MOUSE_LEFT_BUTTON] = false;
+                    keyDown[scene.input.MOUSE_MIDDLE_BUTTON] = false;
+                    keyDown[scene.input.MOUSE_RIGHT_BUTTON] = false;
                     break;
                 case 2: // Middle/both buttons
                     mouseDownLeft = false;
                     mouseDownMiddle = false;
                     mouseDownRight = false;
+                    keyDown[scene.input.MOUSE_LEFT_BUTTON] = false;
+                    keyDown[scene.input.MOUSE_MIDDLE_BUTTON] = false;
+                    keyDown[scene.input.MOUSE_RIGHT_BUTTON] = false;
                     break;
                 case 3: // Right button
                     mouseDownLeft = false;
                     mouseDownMiddle = false;
                     mouseDownRight = false;
+                    keyDown[scene.input.MOUSE_LEFT_BUTTON] = false;
+                    keyDown[scene.input.MOUSE_MIDDLE_BUTTON] = false;
+                    keyDown[scene.input.MOUSE_RIGHT_BUTTON] = false;
                     break;
                 default:
                     break;
@@ -296,7 +327,7 @@ class MousePanRotateDollyHandler {
         let secsNowLast = null;
 
         canvas.addEventListener("wheel", this._mouseWheelHandler = (e) => {
-            if (!(configs.active && configs.pointerEnabled && configs.zoomOnMouseWheel)) {
+            if (!(configs.active && configs.pointerEnabled && configs.zoomOnMouseWheel && cameraControl._isKeyDownForAction(cameraControl.MOUSE_DOLLY, keyDown))) {
                 return;
             }
             const secsNow = performance.now() / 1000.0;
@@ -332,6 +363,8 @@ class MousePanRotateDollyHandler {
 
         document.removeEventListener("keydown", this._documentKeyDownHandler);
         document.removeEventListener("keyup", this._documentKeyUpHandler);
+        document.removeEventListener("visibilitychange", this._onVisibilityChange);
+        window.removeEventListener("blur", this._onBlur);
         canvas.removeEventListener("mousedown", this._mouseDownHandler);
         document.removeEventListener("mousemove", this._documentMouseMoveHandler);
         canvas.removeEventListener("mousemove", this._canvasMouseMoveHandler);

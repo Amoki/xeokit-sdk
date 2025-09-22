@@ -26,10 +26,6 @@ class KeyboardPanRotateDollyHandler {
                 return;
             }
             keyDownMap[keyCode] = true;
-
-            if (keyCode === input.KEY_SHIFT) {
-                canvas.style.cursor = "move";
-            }
         });
 
         this._onSceneKeyUp = input.on("keyup", (keyCode) => {
@@ -38,14 +34,18 @@ class KeyboardPanRotateDollyHandler {
             }
             keyDownMap[keyCode] = false;
 
-            if (keyCode === input.KEY_SHIFT) {
-                canvas.style.cursor = null;
-            }
-
             if (controllers.pivotController.getPivoting()) {
                 controllers.pivotController.endPivot()
             }
         });
+
+        document.addEventListener("visibilitychange", this._onVisibilityChange = () => {
+            keyDownMap.splice(0);
+        })
+
+        window.addEventListener("blur", this._onBlur = () => {
+            keyDownMap.splice(0);
+        })
 
         this._onTick = scene.on("tick", (e) => {
 
@@ -176,6 +176,8 @@ class KeyboardPanRotateDollyHandler {
 
         this._scene.input.off(this._onSceneMouseMove);
         this._scene.input.off(this._onSceneKeyDown);
+        document.removeEventListener("visibilitychange", this._onVisibilityChange);
+        window.removeEventListener("blur", this._onBlur);
         this._scene.input.off(this._onSceneKeyUp);
     }
 }

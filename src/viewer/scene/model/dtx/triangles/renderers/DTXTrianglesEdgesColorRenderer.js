@@ -33,7 +33,7 @@ export class DTXTrianglesEdgesColorRenderer {
         const state = dataTextureLayer._state;
         const textureState = state.textureState;
         const origin = dataTextureLayer._state.origin;
-        const {position, rotationMatrix, rotationMatrixConjugate} = model;
+        const {position, rotationMatrix} = model;
         const viewMatrix = camera.viewMatrix;
 
         if (!this._program) {
@@ -81,7 +81,7 @@ export class DTXTrianglesEdgesColorRenderer {
         }
 
         gl.uniform1i(this._uRenderPass, renderPass);
-        gl.uniformMatrix4fv(this._uSceneModelMatrix, false, rotationMatrixConjugate);
+        gl.uniformMatrix4fv(this._uSceneModelMatrix, false, rotationMatrix);
         gl.uniformMatrix4fv(this._uViewMatrix, false, rtcViewMatrix);
         gl.uniformMatrix4fv(this._uProjMatrix, false, camera.projMatrix);
 
@@ -100,7 +100,7 @@ export class DTXTrianglesEdgesColorRenderer {
                         if (active) {
                             const sectionPlane = sectionPlanes[sectionPlaneIndex];
                             if (origin) {
-                                const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a);
+                                const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a, model.matrix);
                                 gl.uniform3fv(sectionPlaneUniforms.pos, rtcSectionPlanePos);
                             } else {
                                 gl.uniform3fv(sectionPlaneUniforms.pos, sectionPlane.pos);
@@ -377,10 +377,14 @@ export class DTXTrianglesEdgesColorRenderer {
                 src.push("uniform vec3 sectionPlanePos" + i + ";");
                 src.push("uniform vec3 sectionPlaneDir" + i + ";");
             }
+            src.push("uniform float sliceThickness;");
+            src.push("uniform vec4 sliceColor;");
         }
         src.push("in vec4 vColor;");
         src.push("out vec4 outColor;");
         src.push("void main(void) {");
+        src.push("  vec4 newColor;");
+        src.push("  newColor = vColor;");
         if (clipping) {
             src.push("  bool clippable = vFlags2 > 0u;");
             src.push("  if (clippable) {");
@@ -390,13 +394,18 @@ export class DTXTrianglesEdgesColorRenderer {
                 src.push("   dist += clamp(dot(-sectionPlaneDir" + i + ".xyz, vWorldPosition.xyz - sectionPlanePos" + i + ".xyz), 0.0, 1000.0);");
                 src.push("}");
             }
-            src.push("  if (dist > 0.0) { discard; }");
+            src.push("  if (dist > sliceThickness) { ");
+            src.push("      discard;")
+            src.push("  }");
+            src.push("  if (dist > 0.0) { ");
+            src.push("      newColor = sliceColor;");
+            src.push("  }");
             src.push("}");
         }
         if (scene.logarithmicDepthBufferEnabled) {
               src.push("    gl_FragDepth = isPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;");
         }
-        src.push("   outColor            = vColor;");
+        src.push("   outColor            = newColor;");
         src.push("}");
         return src;
     }

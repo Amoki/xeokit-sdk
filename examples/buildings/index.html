@@ -248,7 +248,7 @@
 <div class="content-overlay" id="viewer-overlay"></div>
 <iframe class="content-container" id="viewer" src="../default.html"></iframe>
 <div class="slideout-sidebar">
-    <div id="index"><h1><a href="http://xeokit.io">xeokit</a> / <a href="../">Examples</a> / Buildings</h1></div>
+    <div id="index"><h1><a href="https://xeokit.io">xeokit</a> / <a href="../">Examples</a> / Buildings</h1></div>
 </div>
 </body>
 <script>
@@ -273,6 +273,7 @@
             ["xkt_vbo_federated_Clinic", "Viewing a federated BIM model loaded from XKT into SceneModels"],
             ["xkt_vbo_DemoProjekt", "Viewing a BIM model exported from ArchiCAD"],
             ["xkt_vbo_OTCConferenceCenter", "OTC Conference Center model, loaded from XKT into SceneModel"],
+            ["xkt_vbo_includeIds", "Loading an XKT model with only selected elements with specific ids"],
 
             "#XKT + Data Textures",
 
@@ -292,7 +293,12 @@
             ["xkt_dtx_metadata_moveStoreys", "Using IFC metadata to separate IfcBuildingStoreys"],
             // ["BIMOffline_XKT_authorMetadata", "Viewing an IFC4 BIM model with authoring data"],
             // ["BIMOffline_XKT_Duplex_originalIFCColors", "Viewing an IFC2x3 BIM model, with colors loaded from file"],
-            ["xkt_dtx_DemoProjekt", "Viewing a BIM model exported from ArchiCAD (data textures enabled)"]
+            ["xkt_dtx_DemoProjekt", "Viewing a BIM model exported from ArchiCAD (data textures enabled)"],
+        
+            "#XKT + IfcAxisLabels",
+
+            ["xkt_grid_labels", "Viewing an XKT model containing a grid with labels"],
+            ["xkt_model_labels", "Viewing an XKT model with a grid and some labels"],
         ],
 
         "XKT Multipart": [
@@ -328,7 +334,11 @@
             ["dotbim_SmallHouse", "House model with property sets, loaded from .BIM into SceneModel using DotBIMLoaderPlugin"],
             ["dotbim_TestFaceColors", "Test model with cubes with different face_colors loaded from .BIM into SceneModel using DotBIMLoaderPlugin"],
         ],
-
+        
+        "cxConverterIFC": [
+            "#cxConverterIFC + VBOs",
+            ["cxConverterIFC_vbo_Duplex", "IFC4 Duplex model loaded from IFC into SceneModel using CxConverterIFCPlugin"]
+        ],
 
         "web-ifc": [
 

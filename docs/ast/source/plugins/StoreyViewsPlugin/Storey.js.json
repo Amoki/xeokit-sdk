@@ -623,7 +623,7 @@
                     "trailingComments": [
                       {
                         "type": "CommentBlock",
-                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                         "start": 1009,
                         "end": 1387,
                         "loc": {
@@ -789,7 +789,7 @@
                     "leadingComments": [
                       {
                         "type": "CommentBlock",
-                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                         "start": 1009,
                         "end": 1387,
                         "loc": {
@@ -807,7 +807,7 @@
                     "trailingComments": [
                       {
                         "type": "CommentBlock",
-                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                         "start": 1443,
                         "end": 1844,
                         "loc": {
@@ -955,7 +955,7 @@
                     "leadingComments": [
                       {
                         "type": "CommentBlock",
-                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                         "start": 1443,
                         "end": 1844,
                         "loc": {
@@ -973,7 +973,7 @@
                     "trailingComments": [
                       {
                         "type": "CommentBlock",
-                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
+                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
                         "start": 1891,
                         "end": 2256,
                         "loc": {
@@ -1139,7 +1139,7 @@
                     "leadingComments": [
                       {
                         "type": "CommentBlock",
-                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
+                        "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
                         "start": 1891,
                         "end": 2256,
                         "loc": {
@@ -1995,7 +1995,7 @@
                       "trailingComments": [
                         {
                           "type": "CommentBlock",
-                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                           "start": 1009,
                           "end": 1387,
                           "loc": {
@@ -2161,7 +2161,7 @@
                       "leadingComments": [
                         {
                           "type": "CommentBlock",
-                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                           "start": 1009,
                           "end": 1387,
                           "loc": {
@@ -2179,7 +2179,7 @@
                       "trailingComments": [
                         {
                           "type": "CommentBlock",
-                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                           "start": 1443,
                           "end": 1844,
                           "loc": {
@@ -2327,7 +2327,7 @@
                       "leadingComments": [
                         {
                           "type": "CommentBlock",
-                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
                           "start": 1443,
                           "end": 1844,
                           "loc": {
@@ -2345,7 +2345,7 @@
                       "trailingComments": [
                         {
                           "type": "CommentBlock",
-                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
+                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
                           "start": 1891,
                           "end": 2256,
                           "loc": {
@@ -2511,7 +2511,7 @@
                       "leadingComments": [
                         {
                           "type": "CommentBlock",
-                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
+                          "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
                           "start": 1891,
                           "end": 2256,
                           "loc": {
@@ -2797,7 +2797,7 @@
     },
     {
       "type": "CommentBlock",
-      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
       "start": 1009,
       "end": 1387,
       "loc": {
@@ -2813,7 +2813,7 @@
     },
     {
       "type": "CommentBlock",
-      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
       "start": 1443,
       "end": 1844,
       "loc": {
@@ -2829,7 +2829,7 @@
     },
     {
       "type": "CommentBlock",
-      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
+      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
       "start": 1891,
       "end": 2256,
       "loc": {
@@ -3886,7 +3886,7 @@
     },
     {
       "type": "CommentBlock",
-      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
       "start": 1009,
       "end": 1387,
       "loc": {
@@ -4163,7 +4163,7 @@
     },
     {
       "type": "CommentBlock",
-      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
+      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the IfcBuildingStorey.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @deprecated\n         * @property storeyAABB\n         * @type {Number[]}\n         ",
       "start": 1443,
       "end": 1844,
       "loc": {
@@ -4392,7 +4392,7 @@
     },
     {
       "type": "CommentBlock",
-      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float32Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
+      "value": "*\n         * Axis-aligned World-space boundary of the {@link Entity}s that represent the model.\n         *\n         * The boundary is a six-element Float64Array containing the min/max extents of the\n         * axis-aligned boundary, ie. ````[xmin, ymin, zmin, xmax, ymax, zmax]````\n         *\n         * @property modelAABB\n         * @type {Number[]}\n         ",
       "start": 1891,
       "end": 2256,
       "loc": {
