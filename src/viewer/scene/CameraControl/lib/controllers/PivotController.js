@@ -89,6 +89,7 @@ class PivotController {
             scale: this.getPivotSphereScale(currentPos),
             pickable: false,
             visible: false,
+            collidable: false,
             position: this._rtcPos,
             origin: this._rtcCenter
         });
@@ -143,9 +144,6 @@ class PivotController {
 
     updatePivotSphere() {
         if (this._pivoting) {
-            if (!this._pivotSphere) {
-                this.createPivotSphere()
-            }
             const currentPos = this.getPivotPos();
             worldToRTCPos(currentPos, this._rtcCenter, this._rtcPos);
             if(!math.compareVec3(this._rtcPos, this._pivotSphere.position)) {
@@ -184,6 +182,7 @@ class PivotController {
             specular: [0,0,0],
             diffuse: [0,0,0],
         });
+        this.createPivotSphere();
     }
 
     /**
