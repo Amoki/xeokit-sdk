@@ -61,31 +61,36 @@ class PivotController {
 
         this._onTick = this._scene.on("tick", () => {
             this.updatePivotElement();
-            this.updatePivotSphere();
+            if (this._pivotSphereEnabled) {
+                this.updatePivotSphere();
+            }
         });
     }
-
-    createPivotSphere() {
-        const currentPos = this.getPivotPos();
-
+    getPivotSphereScale(currentPos) {
         const length = math.distVec3(this._scene.camera.eye, currentPos);
-        let radius = (0.0062 * length) * this._pivotSphereSize;
+        let scale = (0.0062 * length) * this._pivotSphereSize;
 
         if (this._scene.camera.projection == "ortho") {
-            radius /= 2;
+            scale /= 2;
         }
+        return [scale, scale, scale];
+    }
+    createPivotSphere() {
+        const currentPos = this.getPivotPos();
 
         worldToRTCPos(currentPos, this._rtcCenter, this._rtcPos);
         this._pivotSphereGeometry = new VBOGeometry(
             this._scene,
-            buildSphereGeometry({ radius })
+            buildSphereGeometry({ radius: 1 })
         );
         this._pivotSphere = new Mesh(this._scene, {
             geometry: this._pivotSphereGeometry,
             material: this._pivotSphereMaterial,
+            scale: this.getPivotSphereScale(currentPos),
             pickable: false,
+            visible: false,
             position: this._rtcPos,
-            rtcCenter: this._rtcCenter
+            origin: this._rtcCenter
         });
     };
 
@@ -137,11 +142,16 @@ class PivotController {
     }
 
     updatePivotSphere() {
-        if (this._pivoting && this._pivotSphere) {
-            worldToRTCPos(this.getPivotPos(), this._rtcCenter, this._rtcPos);
+        if (this._pivoting) {
+            if (!this._pivotSphere) {
+                this.createPivotSphere()
+            }
+            const currentPos = this.getPivotPos();
+            worldToRTCPos(currentPos, this._rtcCenter, this._rtcPos);
             if(!math.compareVec3(this._rtcPos, this._pivotSphere.position)) {
-                this.destroyPivotSphere();
-                this.createPivotSphere();
+                this._pivotSphere.position = this._rtcPos;
+                this._pivotSphere.origin = this._rtcCenter;
+                this._pivotSphere.scale = this.getPivotSphereScale(currentPos);
             }
         }
     }
@@ -361,8 +371,8 @@ class PivotController {
             this._pivotElement.style.visibility = "visible";
         }
         if (this._pivotSphereEnabled) {
-            this.destroyPivotSphere();
-            this.createPivotSphere();
+            this.updatePivotSphere();
+            this._pivotSphere.visible = true;
         }
         this._shown = true;
     }
@@ -379,8 +389,8 @@ class PivotController {
         if (this._pivotElement) {
             this._pivotElement.style.visibility = "hidden";
         }
-        if (this._pivotSphereEnabled) {
-            this.destroyPivotSphere();
+        if (this._pivotSphere) {
+            this._pivotSphere.visible = false;
         }
         this._shown = false;
     }
