@@ -1,6 +1,8 @@
 import { math } from "../../viewer/scene/math/math.js";
 import { Mesh, buildBoxLinesGeometry, ReadableGeometry, PhongMaterial } from "../../viewer/scene/index.js";
 
+let currentTileWithNoContentId = 1;
+
 export default class Tile {
   /**
    * @constructor
@@ -17,10 +19,10 @@ export default class Tile {
 
     this.distanceFactorToFreeData = tileset.plugin.distanceFactorToFreeData;
 
-    this.src = tileData.content.uri;
+    this.src = tileData.content?.uri ?? null;
 
-    const path = new URL(this.src).pathname;
-    this.name = `${tileset.name}_${path.substring(path.lastIndexOf("/") + 1)}`;
+    const path = this.src ? new URL(this.src).pathname : null;
+    this.name = `${tileset.name}_${path ? path.substring(path.lastIndexOf("/") + 1) : `tileWithNoContent_${currentTileWithNoContentId++}`}`;
 
     this.parent = parent;
 
@@ -134,6 +136,8 @@ export default class Tile {
   fetchData() {
     if (this.data) return this.data;
 
+    if (!this.src) return null;
+
     if (!this.fetching) {
       this.fetching = new Promise((resolve, reject) => {
         fetch(this.src).then(response => {
@@ -167,13 +171,13 @@ export default class Tile {
 
     this.boxLines = new Mesh(viewer.scene, {
       geometry: new ReadableGeometry(viewer.scene, buildBoxLinesGeometry({
-         center,
-         xSize,
-         ySize,
-         zSize
+        center,
+        xSize,
+        ySize,
+        zSize
       })),
       material: new PhongMaterial(viewer.scene, {
-         emissive: [1 - colorFactor ,colorFactor, (1 - colorFactor) / 2]
+        emissive: [1 - colorFactor, colorFactor, (1 - colorFactor) / 2]
       })
     });
   }
