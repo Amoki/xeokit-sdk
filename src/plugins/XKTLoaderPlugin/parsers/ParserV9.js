@@ -218,6 +218,11 @@ function load(viewer, options, inflatedData, sceneModel, metaModel, manifestCtx)
             const entityDefaults = {};
             const meshDefaults = {};
 
+            if (options.includeIdsMap && xktEntityId && (!options.includeIdsMap[xktEntityId])) {
+                // Xeokit uses metaObjects to filter by IDs. As we don't use them, we filter on xktEntityId directly
+                continue;
+            }
+
             if (metaObject) {
 
                 // Mask loading of object types
