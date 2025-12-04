@@ -55,7 +55,7 @@ export default class Tile {
     if (tileset.rootTransform) {
       center[0] += tileset.rootTransform[12];
       center[1] += tileset.rootTransform[14];
-      center[2] += tileset.rootTransform[13];
+      center[2] -= tileset.rootTransform[13];
     }
 
     this.center = Object.freeze(center);
