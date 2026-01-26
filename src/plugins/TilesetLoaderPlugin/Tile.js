@@ -50,13 +50,16 @@ export default class Tile {
 
     const [x, y, z, a, b, c, d, e, f, g, h, i] = tileData.boundingVolume.box;
 
-    const center = [x, z, -y];
+    let center = [x, y, z];
+    let scale = 1;
 
     if (tileset.rootTransform) {
-      center[0] += tileset.rootTransform[12];
-      center[1] += tileset.rootTransform[14];
-      center[2] -= tileset.rootTransform[13];
+      math.transformPoint3(tileset.rootTransform, center, center);
+      scale = tileset.rootTransform[0];
     }
+
+    // Convert z-up to y-up after transformation
+    center = [center[0], center[2], -center[1]];
 
     this.center = Object.freeze(center);
 
@@ -64,9 +67,9 @@ export default class Tile {
     const halfYVector = [-d, -e, -f];
     const halfZVector = [g, h, i];
 
-    this.xSize = math.lenVec3(halfXVector);
-    this.ySize = math.lenVec3(halfZVector);
-    this.zSize = math.lenVec3(halfYVector);
+    this.xSize = math.lenVec3(halfXVector) * scale;
+    this.ySize = math.lenVec3(halfZVector) * scale;
+    this.zSize = math.lenVec3(halfYVector) * scale;
 
     this.volume =
       this.xSize *
